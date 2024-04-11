@@ -29,75 +29,57 @@ GenusPalette["Other"] <- "grey"
 new_colorX <- "#000000"
 taxon_to_changeX <- "Mitochondria"
 GenusPalette[taxon_to_changeX] <- new_colorX
-
 new_colorY <- "#008000"
 taxon_to_changeY <- "Chloroplast"
 GenusPalette[taxon_to_changeY] <- new_colorY
-
 new_color <- "#3D550C"
 taxon_to_change <- "Erwinia"
 GenusPalette[taxon_to_change] <- new_color
-
 new_color2 <- "#81B622"
 taxon_to_change2 <- "Arsenophonus"
 GenusPalette[taxon_to_change2] <- new_color2
-
 new_color3 <- "#ECF87F"
 taxon_to_change3 <- "Lactobacillus"
 GenusPalette[taxon_to_change3] <- new_color3
-
 new_color4 <- "#59981A"
 taxon_to_change4 <- "Dolosigranulum"
 GenusPalette[taxon_to_change4] <- new_color4
-
 new_color5 <- "#F51720"
 taxon_to_change5 <- "Sodalis"
 GenusPalette[taxon_to_change5] <- new_color5
-
 new_color6 <- "#FA26A0"
 taxon_to_change6 <- "Acinetobacter"
 GenusPalette[taxon_to_change6] <- new_color6
-
 new_color7 <- "#F8D210"
 taxon_to_change7 <- "Tyzerella"
 GenusPalette[taxon_to_change7] <- new_color7
-
 new_color8 <- "#2FF3E0"
 taxon_to_change8 <- "Sphingomonas"
 GenusPalette[taxon_to_change8] <- new_color8
-
 new_color9 <- "#B1D4E0"
 taxon_to_change9 <- "Skermanella"
 GenusPalette[taxon_to_change9] <- new_color9
-
 new_color10 <- "#2E8BC0"
 taxon_to_change10 <- "Gilliamella"
 GenusPalette[taxon_to_change10] <- new_color10
-
 new_color11 <- "#0C2D48"
 taxon_to_change11 <- "Aquabacterium"
 GenusPalette[taxon_to_change11] <- new_color11
-
 new_color12 <- "#145DA0"
 taxon_to_change12 <- "Thauera"
 GenusPalette[taxon_to_change12] <- new_color12
-
 new_color14 <- "#FFD4DB"
 taxon_to_change14 <- "Massilia"
 GenusPalette[taxon_to_change14] <- new_color14
-
 new_color15 <- "#D3B5E5"
 taxon_to_change15 <- "Modestobacter"
 GenusPalette[taxon_to_change15] <- new_color15
-
 new_color17 <- "#D8A7B1"
 taxon_to_change17 <- "Asaia"
 GenusPalette[taxon_to_change17] <- new_color17
-
 new_color20 <- "#EF7C8E"
 taxon_to_change20 <- "Carnimonas"
 GenusPalette[taxon_to_change20] <- new_color20
-
 new_color21 <- "#0023F5"
 taxon_to_change21 <- "Bacillus"
 GenusPalette[taxon_to_change21] <- new_color21
@@ -275,7 +257,7 @@ p1 <- plot_ordination(physeq = adults2023,
 
 p1
 
-# plot the relative abundance
+#top 20 genera
 ps_Genus <- tax_glom(adults2023, taxrank = "Genus", NArm = FALSE)
 top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:20])
 taxtab20 = cbind(tax_table(ps_Genus), Genus_20 = NA)
@@ -292,6 +274,7 @@ mean(
   )
 )
 
+# plot the relative abundance
 RAAE <- df_Genus %>%
   mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
