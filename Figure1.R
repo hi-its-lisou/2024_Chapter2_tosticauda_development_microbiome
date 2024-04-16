@@ -306,6 +306,10 @@ df_Genus$Genus_20[is.na(df_Genus$Genus_20)] <- c("Other")
 custom_order <- c("Adults", "Eggs", "Larvae", "Prepupae", "Frass contents")
 df_Genus$sample_type <- factor(df_Genus$sample_type, levels = custom_order)
 
+#custom order for cell ID from youngest to oldest
+custom_Cell_ID_order <- c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A")
+df_Genus$Cell_ID <- factor(df_Genus$Cell_ID, levels = custom_Cell_ID_order)
+
 
 fig2 <- df_Genus %>%
   mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
