@@ -1,5 +1,3 @@
-setwd("D:/Research/PhD/Manuscripts/Chapter 2/code/R project/Chapter2_analysis/data")
-
 #load required libraries
 library(phyloseq)
 library(tidyverse)
@@ -232,8 +230,10 @@ filtered_physeq <- subset_samples(ps_rar, !zero_abundance_samples)
 filtered_physeq
 
 # Subset the data for samples_types 
-food_through_time <- subset_samples(filtered_physeq, sample_type %in% c("Food"))
-
+food_through_time <- subset_samples(filtered_physeq, sample_type %in% c("Food") 
+                                    & Nest_id %in% c("5", "13", "14", "27")
+                                    & Cell_ID %in% c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A"))
+#obtain top 20 genera
 ps_Genus <- tax_glom(food_through_time, taxrank = "Genus", NArm = FALSE)
 top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:20])
 taxtab20 = cbind(tax_table(ps_Genus), Genus_20 = NA)
@@ -250,6 +250,10 @@ mean(
   )
 )
 
+# custom order for Cell_ID from youngest to oldest
+custom_Cell_ID_order <- c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A")
+df_Genus$Cell_ID <- factor(df_Genus$Cell_ID, levels = custom_Cell_ID_order)
+                                       
 fig3 <- df_Genus %>%
   mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
