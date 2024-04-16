@@ -242,6 +242,7 @@ adults_subset <- subset_samples(filtered_physeq,
 larva_subset <- subset_samples(filtered_physeq, sample_type %in% c("Larvae"))
 egg_subset <- subset_samples(filtered_physeq, sample_type %in% c("Eggs"))
 frass_subset <- subset_samples(filtered_physeq, Description_of_sample %in% c("CocoonFrass", "Frass", "PinkCocoonFrass"))
+frass_subset@sam_data$sample_type[which(frass_subset@sam_data$sample_type == "Nest_contents")] <- "Frass contents"
 HB_subset <- subset_samples(filtered_physeq, sample_type %in% c("Honey_bee"))
 
 # Compare alpha diversity of tosti samples with honey bees
@@ -302,7 +303,7 @@ df_Genus <- psmelt(ps_Genus_ra)
 df_Genus <- arrange(df_Genus, sample_type)
 df_Genus$Genus_20[is.na(df_Genus$Genus_20)] <- c("Other")
 
-custom_order <- c("Adults", "Eggs", "Larvae", "Prepupae", "Nest_contents")
+custom_order <- c("Adults", "Eggs", "Larvae", "Prepupae", "Frass contents")
 df_Genus$sample_type <- factor(df_Genus$sample_type, levels = custom_order)
 
 
