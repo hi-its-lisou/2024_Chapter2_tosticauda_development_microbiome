@@ -82,6 +82,15 @@ GenusPalette[taxon_to_change20] <- new_color20
 new_color21 <- "#0023F5"
 taxon_to_change21 <- "Bacillus"
 GenusPalette[taxon_to_change21] <- new_color21
+new_color22 <- "#A020F0"
+taxon_to_change22 <- "Enterococcus"
+GenusPalette[taxon_to_change22] <- new_color22
+new_colorX <- "#000000"
+taxon_to_changeX <- "Mitochondria"
+GenusPalette[taxon_to_changeX] <- new_colorX
+new_colorY <- "#008000"
+taxon_to_changeY <- "Chloroplast"
+GenusPalette[taxon_to_changeY] <- new_colorY
 
 #rarefy and filter out 0 abundance samples
 ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337)
