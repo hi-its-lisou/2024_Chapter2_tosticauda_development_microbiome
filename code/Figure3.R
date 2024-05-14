@@ -1,5 +1,4 @@
 #####################################################################################################
-
 library(phyloseq)
 library(tidyverse)
 library(qiime2R)
@@ -76,6 +75,9 @@ GenusPalette[taxon_to_change20] <- new_color20
 new_color21 <- "#0023F5"
 taxon_to_change21 <- "Bacillus"
 GenusPalette[taxon_to_change21] <- new_color21
+new_color22 <- "#A020F0"
+taxon_to_change22 <- "Enterococcus"
+GenusPalette[taxon_to_change22] <- new_color22
 new_colorX <- "#000000"
 taxon_to_changeX <- "Mitochondria"
 GenusPalette[taxon_to_changeX] <- new_colorX
@@ -163,7 +165,7 @@ fig4 <- df_Genus %>%
     axis.title.x = element_blank(),
     legend.title = element_blank(),
     legend.text = element_text(size = 12),
-    legend.position = "none",
+    legend.position = "bottom",
     strip.background = element_blank(),
     strip.text = element_textbox_simple(
      padding = margin(5, 0, 5, 0),
@@ -180,16 +182,59 @@ fig4 <- df_Genus %>%
 
 fig4
 
-legend <- df_Genus %>%
-  mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
-  ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
-  geom_bar(width = 1, stat = "identity") +
-  scale_fill_manual(values = GenusPalette) +
-  facet_nested(~ AB_treatment + sampleid + Year, scales = "free", space = "free") +
+
+ggsave("Figure3.png", height=15, width=20)
+
+
+
+### Acinetobacter plot - Supplementary Figure 3 ###
+# Phyloseq object with only Acinetobacter ASVs
+ps_acinetobacter <- subset_taxa(ps, Genus=="Acinetobacter")
+df_temp <- as.data.frame(ps_acinetobacter@tax_table) 
+df_temp$asvs <- row.names(ps_acinetobacter@tax_table)
+ps_acinetobacter@tax_table <- tax_table(as.matrix(df_temp))
+
+# Subset samples
+supp_AB_exp1 <- subset_samples(ps_acinetobacter, AB_treatment %in% c("control", "antibiotic"))
+supp_AB_exp2 <- subset_samples(ps_acinetobacter, sample_type %in% c("Negative_control"))
+supp_AB_exp <- merge_phyloseq(supp_AB_exp1, supp_AB_exp2)
+supp_AB_exp
+
+sample_sums(supp_AB_exp)
+
+# Sort top 20 ASVs
+top20ASV = names(sort(taxa_sums(supp_AB_exp), TRUE)[1:20])
+taxtab20 = cbind(tax_table(supp_AB_exp), ASV_20 = NA)
+taxtab20[top20ASV, "ASV_20"] <- as(tax_table(supp_AB_exp)
+                                   [top20ASV, "asvs"], "character")
+
+tax_table(supp_AB_exp) <- tax_table(taxtab20)
+ps_ASV_ra <- transform_sample_counts(supp_AB_exp, function(x) 100 * x/sum(x))
+df_ASV <- psmelt(ps_ASV_ra)
+df_ASV <- arrange(df_ASV, sample_type)
+df_ASV$ASV_20[is.na(df_ASV$ASV_20)] <- c("Other")
+
+# Colour palette to distinguish true Acinetobacter from contam
+getPalette = colorRampPalette(brewer.pal(9, "Set1"))
+ASVList = unique(tax_table(ps_acinetobacter)[,"asvs"])
+ASVPalette = getPalette(length(ASVList))
+names(ASVPalette) = ASVList
+
+new_color_Acinetobacter <- "#FA26A0"
+Acinetobacter_to_change <- "c624f2e4228eea7296b2a77e2d4b7e50"
+ASVPalette[Acinetobacter_to_change] <- new_color_Acinetobacter
+
+#Plot relative abundance of Acinetobacter ASVs
+Acinetobacter_plot_supp3 <- df_ASV %>%
+  filter(Abundance > 0) %>%
+  ggplot(aes(x = sample_type, y = Abundance, fill = ASV_20)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = ASVPalette) +
+  facet_nested(~ sample_type + AB_treatment + Sample, scales = "free", space = "free") +
   labs(x = "sample_type", y = "Relative abundance") +
   theme( 
-    axis.text.y = element_text(size=14, face = 'bold'),
-    axis.title.y = element_text(size=14, face = 'bold'),
+    axis.text.y = element_text(size=16, face = 'bold'),
+    axis.title.y = element_text(size=16, face = 'bold'),
     axis.ticks.y = element_line(linewidth = 1),
     axis.ticks.x = element_blank(),
     axis.text.x = element_blank(),
@@ -201,23 +246,15 @@ legend <- df_Genus %>%
     strip.text = element_textbox_simple(
       padding = margin(5, 0, 5, 0),
       margin = margin(5, 5, 5, 5),
-      size = 10,
+      size = 16,
       face = "bold",
       halign = 0.5,
       fill = "white",
       box.color = "grey",
       linewidth = 1.5,
       linetype = "solid",),
-    panel.background = element_blank()
-  )
+    panel.background = element_blank())
 
-ABplot <- cowplot::plot_grid(  fig4,
-                               cowplot::get_legend(legend),
-                               fig5,
-                               ncol = 1,
-                               rel_heights = c(1.2, 0.3, 0.6),
-                               rel_widths = c(1,0.3, 0.6))
 
-ABplot
-
-ggsave("Figure3.png", height=15, width=20)
+Acinetobacter_plot_supp3
+ggsave("FigureS3.png", height=15, width=25)

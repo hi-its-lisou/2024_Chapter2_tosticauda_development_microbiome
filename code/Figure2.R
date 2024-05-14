@@ -83,6 +83,12 @@ GenusPalette[taxon_to_change21] <- new_color21
 new_color22 <- "#A020F0"
 taxon_to_change22 <- "Enterococcus"
 GenusPalette[taxon_to_change22] <- new_color22
+new_colorX <- "#000000"
+taxon_to_changeX <- "Mitochondria"
+GenusPalette[taxon_to_changeX] <- new_colorX
+new_colorY <- "#008000"
+taxon_to_changeY <- "Chloroplast"
+GenusPalette[taxon_to_changeY] <- new_colorY
 
 #rarefy at 1500
 ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337)
@@ -182,15 +188,20 @@ alpha_diversity_metadata %>%
   geom_boxplot() +
   geom_point(size = 3)
 
-#Acinetobacter plot for supplementary materials
+#### Acinetobacter plot - Supplementary Figure 2 ###
+# Phyloseq object with only Acinetobacter ASVs
 ps_acinetobacter <- subset_taxa(ps, Genus=="Acinetobacter")
 df_temp <- as.data.frame(ps_acinetobacter@tax_table) 
 df_temp$asvs <- row.names(ps_acinetobacter@tax_table)
 ps_acinetobacter@tax_table <- tax_table(as.matrix(df_temp))
 
+# Subset samples
 supp_adults2023 <- subset_samples(ps_acinetobacter, sample_type %in% c("Adults", "Negative_control"))
 supp_adults2023
 
+sample_sums(supp_adults2023)
+
+# Sort top 20 ASVs
 top20ASV = names(sort(taxa_sums(supp_adults2023), TRUE)[1:20])
 taxtab20 = cbind(tax_table(supp_adults2023), ASV_20 = NA)
 taxtab20[top20ASV, "ASV_20"] <- as(tax_table(supp_adults2023)
@@ -202,11 +213,22 @@ df_ASV <- psmelt(ps_ASV_ra)
 df_ASV <- arrange(df_ASV, sample_type)
 df_ASV$ASV_20[is.na(df_ASV$ASV_20)] <- c("Other")
 
+# Colour palette to distinguish true Acinetobacter from contam
+getPalette = colorRampPalette(brewer.pal(9, "Set1"))
+ASVList = unique(tax_table(ps_acinetobacter)[,"asvs"])
+ASVPalette = getPalette(length(ASVList))
+names(ASVPalette) = ASVList
 
-Acinetobacter_plot_supp <- df_ASV %>%
+new_color_Acinetobacter <- "#FA26A0"
+Acinetobacter_to_change <- "c624f2e4228eea7296b2a77e2d4b7e50"
+ASVPalette[Acinetobacter_to_change] <- new_color_Acinetobacter
+
+#Plot relative abundance of Acinetobacter ASVs
+Acinetobacter_plot_supp2 <- df_ASV %>%
   filter(Abundance > 0) %>%
   ggplot(aes(x = sample_type, y = Abundance, fill = ASV_20)) +
   geom_bar(stat = "identity") +
+  scale_fill_manual(values = ASVPalette) +
   facet_nested(~ sample_type + Env_exposure + Sample, scales = "free", space = "free") +
   labs(x = "sample_type", y = "Relative abundance") +
   theme( 
@@ -223,7 +245,7 @@ Acinetobacter_plot_supp <- df_ASV %>%
     strip.text = element_textbox_simple(
       padding = margin(5, 0, 5, 0),
       margin = margin(5, 5, 5, 5),
-      size = 10,
+      size = 16,
       face = "bold",
       halign = 0.5,
       fill = "white",
@@ -232,3 +254,6 @@ Acinetobacter_plot_supp <- df_ASV %>%
       linetype = "solid",),
     panel.background = element_blank())
 
+
+Acinetobacter_plot_supp2
+ggsave("FigureS2.png", height=15, width=25)
