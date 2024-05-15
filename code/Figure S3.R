@@ -55,7 +55,7 @@ Acinetobacter_to_change <- "c624f2e4228eea7296b2a77e2d4b7e50"
 ASVPalette[Acinetobacter_to_change] <- new_color_Acinetobacter
 
 #Plot relative abundance of Acinetobacter ASVs
-(Acinetobacter_plot_supp3 <- df_ASV %>%
+Acinetobacter_plot_supp3 <- df_ASV %>%
   filter(Abundance > 0) %>%
   ggplot(aes(x = sample_type, y = Abundance, fill = ASV_20)) +
   geom_bar(width = 1, stat = "identity") +
@@ -84,7 +84,8 @@ ASVPalette[Acinetobacter_to_change] <- new_color_Acinetobacter
       linewidth = 1.5,
       linetype = "solid",),
     panel.background = element_blank()
-  ))
+  )
 
 #Save plot
 ggsave("Acinetobacter_supp_3.png", height = 15, width = 30)
+

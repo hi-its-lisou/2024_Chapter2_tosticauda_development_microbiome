@@ -1,5 +1,4 @@
-#####################################################################################################
-#load required libraries
+# Load the required libraries ####
 library(phyloseq)
 library(tidyverse)
 library(qiime2R)
@@ -16,9 +15,7 @@ library(ggforce)
 library(vegan)
 library(patchwork)
 
-install.packages("patchwork")
-
-#load phyloseq object
+# Load phyloseq object ####
 ps <- qza_to_phyloseq(
   features = "input_files/merged_table.qza",
   taxonomy = "input_files/merged_taxonomy.qza",
@@ -28,38 +25,31 @@ ps@sam_data$sampleid = rownames(ps@sam_data)
 ps
 
 
-#Load costum colour palette 
+# Load custom colour palette ####
 colours_df <- file.path(
   "D:/Research/PhD/Manuscripts/Chapter 2/Git/2024_Chapter2_tosticauda_development_microbiome/input_files/",
   "colour_list.csv"
 ) %>% read_csv
 
-
 my_palette <- colours_df$colours
 names(my_palette) <- colours_df$genera
 my_palette
 
-#rarefy at 1500
+# Rarefy ####
 ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337)
 ps_rar
 
-#vector for chloroplast, mitochondrial, and contaminant asvs
+# Remove contaminants, chloroplasts, and mitochondria ####
 contam <- read_delim("input_files/chloro_mito_decontam_asvs.txt", 
                      delim = "\n", 
                      col_names = "asv")
-
 chloro_mito_decontam_asvs <- contam$asv
-
-#vector for chloroplast, mitochondrial, and contaminant asvs
-chloro_mito_decontam_asvs
-
-#remove off-target reads
 all_asvs <- taxa_names(ps_rar)
 asvs_to_keep <- all_asvs[!(all_asvs %in% chloro_mito_decontam_asvs)]
 ps_rar <- prune_taxa(asvs_to_keep, ps_rar)
 ps_rar
 
-#filter out 0 abundance asvs
+# Filter out 0 abundance reads ####
 zero_abundance_samples <- sample_sums(ps_rar) == 0
 filtered_physeq <- subset_samples(ps_rar, !zero_abundance_samples)
 filtered_physeq
@@ -77,7 +67,7 @@ frass_subset <- subset_samples(filtered_physeq, Description_of_sample %in% c("Co
 frass_subset@sam_data$sample_type[which(frass_subset@sam_data$sample_type == "Nest_contents")] <- "Frass contents"
 HB_subset <- subset_samples(filtered_physeq, sample_type %in% c("Honey_bee"))
 
-# Compare alpha diversity of tosti samples with honey bees
+# Compare the alpha diversity of tosti samples with honey bees
 combined_subset1 <- merge_phyloseq(egg_subset, prepupal_subset, adults_subset, larva_subset, frass_subset, HB_subset)
 
 alpha_diversity <- alpha(combined_subset1, index = "Shannon")
@@ -86,17 +76,18 @@ metadata$name <- rownames(metadata)
 alpha_diversity$name <- rownames(alpha_diversity)
 alpha_diversity_metadata <- merge(alpha_diversity, metadata, by = "name")
 
+#Plot the alpha diversity
 alpha_diversity_metadata %>%
   ggplot(aes(x = sample_type, y = diversity_shannon, colour = sample_type)) +
   geom_boxplot() +
   geom_point(size = 3)
 
-##################### DEVELOPMENT STAGES
-#plot beta diversity of development stages
+### Analysis development stages ###
+# Compare the beta diversity of the different development stages ####
 combined_subset2 <- merge_phyloseq(prepupal_subset, adults_subset, larva_subset)
 unweighted_unifrac <- ordinate(combined_subset2, method = "PCoA", distance = "unifrac", weighted=F)
 
-#create plot
+# Create plot
 ordination_plot <- plot_ordination(physeq = combined_subset2,
                                    ordination = unweighted_unifrac,
                                    color = "sample_type",
@@ -104,7 +95,7 @@ ordination_plot <- plot_ordination(physeq = combined_subset2,
   theme_minimal() +
   geom_point(size = 3, alpha = 0.6)
 
-#add ellipses
+# Add ellipses
 fig1b <- ordination_plot +
   stat_ellipse(geom = "polygon", type="norm", alpha=0) +
   theme(legend.position = "bottom",
@@ -112,21 +103,19 @@ fig1b <- ordination_plot +
         legend.text = element_text(size = 16),
         axis.title = element_text(size = 16))
 
-#adonis statistic to determine whether communities are significanly different
-#refactor metadata
+# Adonis statistic to determine whether communities are significantly different
+#Refactor metadata
 md_combined_subset <- as(sample_data(combined_subset2), "data.frame")
-
-#Run adonis: sample_type with 9999 permutations
+#Run adonis with 9999 permutations
 uw_adonis <- adonis2(distance(combined_subset2, method="unifrac") ~ sample_type, 
                      data = md_combined_subset, 
                      permutations = 9999)
 uw_adonis
 
-################################################################################
-
-#plot relative abundance for tosti samples
+# Combine the subsetted data ####
 combined_subset <- merge_phyloseq(egg_subset, prepupal_subset, adults_subset, larva_subset, frass_subset)
 
+# Obtain top 20 genera ####
 ps_Genus <- tax_glom(combined_subset, taxrank = "Genus", NArm = FALSE)
 top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:20])
 taxtab20 = cbind(tax_table(ps_Genus), Genus_20 = NA)
@@ -138,14 +127,14 @@ df_Genus <- psmelt(ps_Genus_ra)
 df_Genus <- arrange(df_Genus, sample_type)
 df_Genus$Genus_20[is.na(df_Genus$Genus_20)] <- c("Other")
 
+# Plot the relative abundance ####
+# Custom order for sample types
 custom_order <- c("Adults", "Eggs", "Larvae", "Prepupae", "Frass contents")
 df_Genus$sample_type <- factor(df_Genus$sample_type, levels = custom_order)
 
-#custom order for cell ID from youngest to oldest
+# Custom order for cell ID from youngest to oldest
 custom_Cell_ID_order <- c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A")
 df_Genus$Cell_ID <- factor(df_Genus$Cell_ID, levels = custom_Cell_ID_order)
-
-
 
 (fig1a <- df_Genus %>%
   mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
@@ -186,7 +175,5 @@ df_Genus$Cell_ID <- factor(df_Genus$Cell_ID, levels = custom_Cell_ID_order)
 fig1a + fig1b +
   plot_layout(widths = c(3, 1))
 
-
+#Save plot
 ggsave("figures/Figure1.png", height=9, width=15)
-
-
