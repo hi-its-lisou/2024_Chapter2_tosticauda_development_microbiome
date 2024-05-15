@@ -91,14 +91,14 @@ df_Genus <- psmelt(ps_Genus_ra)
 df_Genus <- arrange(df_Genus, sample_type)
 df_Genus$Genus_20[is.na(df_Genus$Genus_20)] <- c("Other")
 
-# % of reads that make up the top 20 genera
+# % of reads that make up the top 20 genera ####
 mean(
   sample_sums(
     prune_taxa(top20Genus, ps_Genus_ra)
   )
 )
 
-# Plot the relative abundance
+# Plot the relative abundance ####
 (RAAE <- df_Genus %>%
   mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
@@ -130,15 +130,14 @@ mean(
     panel.background = element_blank()
   ))
 
-#Combine the plots 
+# Combine the plots ####
 AE_plot <- cowplot::plot_grid(RAAE,
                                p1,
                                ncol = 2,
                                rel_heights = c(1,0.6),
                                rel_widths = c(1, 0.5))
 
-AE_plot
-
+# Save plot ####
 ggsave("Figure4.png", height=15, width=25)
 
 

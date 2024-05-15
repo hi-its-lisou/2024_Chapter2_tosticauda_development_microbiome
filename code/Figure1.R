@@ -67,7 +67,7 @@ frass_subset <- subset_samples(filtered_physeq, Description_of_sample %in% c("Co
 frass_subset@sam_data$sample_type[which(frass_subset@sam_data$sample_type == "Nest_contents")] <- "Frass contents"
 HB_subset <- subset_samples(filtered_physeq, sample_type %in% c("Honey_bee"))
 
-# Compare the alpha diversity of tosti samples with honey bees
+# Compare the alpha diversity of tosti samples with honey bees ####
 combined_subset1 <- merge_phyloseq(egg_subset, prepupal_subset, adults_subset, larva_subset, frass_subset, HB_subset)
 
 alpha_diversity <- alpha(combined_subset1, index = "Shannon")

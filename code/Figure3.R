@@ -42,11 +42,11 @@ asvs_to_keep <- all_asvs[!(all_asvs %in% chloro_mito_decontam_asvs)]
 ps_rar <- prune_taxa(asvs_to_keep, ps_rar)
 ps_rar
 
-#Subset prepupae from antibiotic experiment only
+#Subset prepupae from antibiotic experiment only ####
 AB_exp <- subset_samples(ps_rar, AB_treatment %in% c("control", "antibiotic"))
 AB_exp #821 taxa and 39 samples
 
-# Remove 0 abundsance samples
+# Remove 0 abundsance samples ####
 zero_abundance_samples <- sample_sums(AB_exp) == 0
 filtered_physeq <- subset_samples(AB_exp, !zero_abundance_samples)
 filtered_physeq
@@ -58,7 +58,7 @@ metadata$name <- rownames(metadata)
 alpha_diversity$name <- rownames(alpha_diversity)
 alpha_diversity_metadata <- merge(alpha_diversity, metadata, by = "name")
 
-# Plot alpha diversity
+# Plot alpha diversity ####
 fig5 <- alpha_diversity_metadata %>%
   ggplot(aes(x = AB_treatment, y = diversity_shannon, colour = AB_treatment)) +
   geom_boxplot() +
@@ -76,7 +76,7 @@ df_Genus <- psmelt(ps_Genus_ra)
 df_Genus <- arrange(df_Genus, sample_type)
 df_Genus$Genus_20[is.na(df_Genus$Genus_20)] <- c("Other")
 
-# % of reads that make up the top 20 genera
+# % of reads that make up the top 20 genera ####
 mean(
   sample_sums(
     prune_taxa(top20Genus, ps_Genus_ra)
