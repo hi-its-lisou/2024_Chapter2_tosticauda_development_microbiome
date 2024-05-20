@@ -96,13 +96,13 @@ ordination_plot <- plot_ordination(physeq = combined_subset2,
   geom_point(size = 3, alpha = 0.6)
 
 # Add ellipses
-fig1b <- ordination_plot +
+(fig1b <- ordination_plot +
   stat_ellipse(geom = "polygon", type="norm", alpha=0) +
   theme(legend.position = "bottom",
         legend.title = element_blank(),
         legend.text = element_text(size = 16),
         axis.title = element_text(size = 16))
-
+        )
 # Adonis statistic to determine whether communities are significantly different
 #Refactor metadata
 md_combined_subset <- as(sample_data(combined_subset2), "data.frame")
@@ -113,10 +113,10 @@ uw_adonis <- adonis2(distance(combined_subset2, method="unifrac") ~ sample_type,
 uw_adonis
 
 # Combine the subsetted data ####
-combined_subset <- merge_phyloseq(egg_subset, prepupal_subset, adults_subset, larva_subset, frass_subset)
+combined_subset2 <- merge_phyloseq(egg_subset, prepupal_subset, adults_subset, larva_subset, frass_subset)
 
 # Obtain top 20 genera ####
-ps_Genus <- tax_glom(combined_subset, taxrank = "Genus", NArm = FALSE)
+ps_Genus <- tax_glom(combined_subset2, taxrank = "Genus", NArm = FALSE)
 top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:20])
 taxtab20 = cbind(tax_table(ps_Genus), Genus_20 = NA)
 taxtab20[top20Genus, "Genus_20"] <- as(tax_table(ps_Genus)
@@ -141,7 +141,7 @@ df_Genus$Cell_ID <- factor(df_Genus$Cell_ID, levels = custom_Cell_ID_order)
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
   geom_bar(width = 1, stat = "identity") +
   scale_fill_manual(values = my_palette) +
-  facet_nested(~ sample_type + Cell_ID + sampleid, 
+  facet_nested(~ sample_type + Year + Cell_ID + sampleid, 
                scales = "free", 
                space = "free",
                ) +
