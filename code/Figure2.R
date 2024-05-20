@@ -77,8 +77,6 @@ mean(
   )
 )
 
-
-
 # Plot the relative abundance ####
 # Custom order for Cell_ID from youngest to oldest
 custom_Cell_ID_order <- c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A")
@@ -122,7 +120,7 @@ metadata$name <- rownames(metadata)
 alpha_diversity$name <- rownames(alpha_diversity)
 alpha_diversity_metadata <- merge(alpha_diversity, metadata, by = "name")
 
-# Box plot for alpha diversity
+# Box plot for alpha diversity ####
 alpha_diversity_metadata %>%
   ggplot(aes(x = Cell_ID, y = diversity_shannon, colour = Cell_ID)) +
   geom_boxplot() +
