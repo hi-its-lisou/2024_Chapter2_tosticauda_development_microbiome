@@ -63,10 +63,10 @@ ggplot(sample_data_df, aes(x = sampleid, y = logDNA)) +
  scale_color_manual(values = custom_colors) +
  scale_y_continuous(name = "logDNA") +
  theme(axis.text.x = element_blank(),
-       strip.text = element_text(size = 14)) +
+       strip.text = element_text(size = 12)) +
  facet_wrap(~sample_type, ncol = 5, scale = "free_x")
 
 # Save the figure 
-ggsave("figures/Figure5.png", height=9, width=15)
+ggsave("figures/Figure5.png", height=5, width=9)
    
    
