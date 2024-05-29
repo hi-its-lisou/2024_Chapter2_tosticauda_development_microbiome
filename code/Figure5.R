@@ -36,7 +36,7 @@ custom_order <- c("Negative_control", "Adults", "Prepupae", "Food", "Honey_bee")
 sample_data_df$sample_type <- factor(sample_data_df$sample_type, levels = custom_order)
 
 # Custom colors
-custom_colors <- c("control" = "#e7298a", "antibiotic" = "#7570b3", "NA" = "black")
+custom_colors <- c("control" = "#34C9CD", "antibiotic" = "#F87970", "NA" = "black")
 
 # Convert NA values to strings so that they are still included in the plot
 sample_data_df$AB_treatment <- as.character(sample_data_df$AB_treatment)
