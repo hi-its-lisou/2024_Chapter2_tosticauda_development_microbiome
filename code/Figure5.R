@@ -24,6 +24,21 @@ ps <- qza_to_phyloseq(
 ps@sam_data$sampleid = rownames(ps@sam_data)
 ps
 
+# Load custom colour palette ####
+colours_df <- file.path(
+  "D:/Research/PhD/Manuscripts/Chapter 2/Git/2024_Chapter2_tosticauda_development_microbiome/input_files/",
+  "colour_list.csv"
+) %>% read_csv
+
+my_palette <- colours_df$colours
+names(my_palette) <- colours_df$genera
+my_palette
+
+# Identify zero abundance samples
+zero_abundance_samples <- sample_sums(ps) == 0
+ps <- subset_samples(ps, !zero_abundance_samples)
+ps
+
 # Subset the data for samples that underwent qPCRs (have CT scores)
 qPCRs <- subset_samples(ps, complete.cases(AVG_CTscore) &
                           sample_type %in% c("Negative_control", "Food", "Adults", "Prepupae", "Honey_bee"))
@@ -48,7 +63,7 @@ sample_data_df$Env_exposure[is.na(sample_data_df$Env_exposure)] <- "NA"
 sample_data_df$Env_exposure <- factor(sample_data_df$Env_exposure, levels = c("Free-flying", "Nest_only", "None", "NA"))
 
 # Create the ggplot
-ggplot(sample_data_df, aes(x = sampleid, y = logDNA)) +
+(qPCRPlot <- ggplot(sample_data_df, aes(x = sampleid, y = logDNA)) +
  geom_hline(aes(linetype = "limit of detection", yintercept = 2.339477 ), color = "green") +
       geom_point(aes(
    color = AB_treatment,
@@ -64,9 +79,10 @@ ggplot(sample_data_df, aes(x = sampleid, y = logDNA)) +
  scale_y_continuous(name = "logDNA") +
  theme(axis.text.x = element_blank(),
        strip.text = element_text(size = 12)) +
- facet_wrap(~sample_type, ncol = 5, scale = "free_x")
+ facet_wrap(~sample_type, ncol = 5, scale = "free_x"))
+
 
 # Save the figure 
-ggsave("figures/Figure5.png", height=5, width=9)
+ggsave("figures/Figure5.png", height=10, width=15)
    
    
