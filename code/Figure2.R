@@ -55,9 +55,17 @@ filtered_physeq
 sort(sample_sums(filtered_physeq))
 
 # Subset the data for samples_types ####
+
+frass_subset <- subset_samples(filtered_physeq, Description_of_sample %in% c("CocoonFrass", "Frass", "PinkCocoonFrass"))
+
 food_through_time <- subset_samples(filtered_physeq, sample_type %in% c("Food") 
                                     & Nest_id %in% c("5", "13", "14", "27")
                                     & Cell_ID %in% c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A"))
+food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "5")] <- "1"
+food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "13")] <- "2"
+food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "14")] <- "3"
+food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "27")] <- "4"
+
 # Obtain top 20 genera ####
 ps_Genus <- tax_glom(food_through_time, taxrank = "Genus", NArm = FALSE)
 top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:20])
@@ -87,7 +95,7 @@ df_Genus$Cell_ID <- factor(df_Genus$Cell_ID, levels = custom_Cell_ID_order)
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
   geom_bar(width = 1, stat = "identity") +
   scale_fill_manual(values = my_palette) +
-  facet_nested(~ Nest_id + Cell_ID + sample_type, scales = "free", space = "free") +
+  facet_nested(~ Nest_id + Year + Cell_ID + sample_type, scales = "free", space = "free") +
   labs(x = "sample_type", y = "Relative abundance") +
   theme( 
     axis.text.y = element_text(size=16, face =, 'bold'),
@@ -113,6 +121,8 @@ df_Genus$Cell_ID <- factor(df_Genus$Cell_ID, levels = custom_Cell_ID_order)
     panel.background = element_blank()
   ))
 
+ggsave("figures/Figure2uneditted.png", height=10, width=20)
+
 # Alpha diversity of pollen provisions as they are consumed ####
 alpha_diversity <- alpha(food_through_time, index = "Shannon")
 metadata <- meta(food_through_time)
@@ -125,4 +135,6 @@ alpha_diversity_metadata %>%
   ggplot(aes(x = Cell_ID, y = diversity_shannon, colour = Cell_ID)) +
   geom_boxplot() +
   geom_point(size = 3)
+
+ggsave("figures/S1.png", height=10, width=15)
 
