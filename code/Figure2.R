@@ -94,7 +94,7 @@ mean(
 custom_Cell_ID_order <- c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A")
 df_Genus$Cell_ID <- factor(df_Genus$Cell_ID, levels = custom_Cell_ID_order)
 
-(fig3 <- df_Genus %>%
+(fig2 <- df_Genus %>%
   mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
   geom_bar(width = 1, stat = "identity") +
@@ -224,6 +224,8 @@ df_Genus$Cell_ID <- factor(df_Genus$Cell_ID, levels = custom_Cell_ID_order)
     ))
 
 
+
+ggsave("figures/too add.png", height=10, width=15)
 
 
 

@@ -47,7 +47,7 @@ sample_data_df$Env_exposure[is.na(sample_data_df$Env_exposure)] <- "NA"
 sample_data_df$Env_exposure <- factor(sample_data_df$Env_exposure, levels = c("Free-flying", "Nest_only", "None", "NA"))
 
 # Custom colors for sample types
-custom_colors <- c("Negative_control" = "red", "Adults" = "blue", "Food" = "yellow", "Honey_bee" = "purple")
+custom_colors <- c("Negative_control" = "red", "Adults" = "black", "Food" = "yellow", "Honey_bee" = "blue")
 
 # Create the ggplot
 qPCRPlot <- ggplot(sample_data_df, aes(x = sampleid, y = logDNA, color = sample_type)) +
@@ -65,10 +65,9 @@ qPCRPlot <- ggplot(sample_data_df, aes(x = sampleid, y = logDNA, color = sample_
         strip.text = element_text(size = 12)) +
   facet_wrap(~sample_type, ncol = 5, scale = "free_x")
 
-# Print the plot
-print(qPCRPlot)
+qPCRPlot
 
 # Save the figure 
-ggsave("figures/Figure4.png", height=10, width=15)
+ggsave("figures/Figure4.png", height=5, width=10)
    
    
