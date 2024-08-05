@@ -87,22 +87,25 @@ alpha_diversity_metadata %>%
 combined_subset2 <- merge_phyloseq(prepupal_subset, adults_subset, larva_subset)
 unweighted_unifrac <- ordinate(combined_subset2, method = "PCoA", distance = "unifrac", weighted=F)
 
-# Create plot
-ordination_plot <- plot_ordination(physeq = combined_subset2,
-                                   ordination = unweighted_unifrac,
-                                   color = "sample_type",
-                                   axes = c(1, 2)) +
-  theme_minimal() +
-  geom_point(size = 3, alpha = 0.6)
 
-# Add ellipses
-(fig1b <- ordination_plot +
-  stat_ellipse(geom = "polygon", type="norm", alpha=0) +
-  theme(legend.position = "bottom",
-        legend.title = element_blank(),
-        legend.text = element_text(size = 16),
-        axis.title = element_text(size = 16))
-        )
+colours <- c("#f87970", "green", "#4B0092")
+
+
+(Figure1B <- plot_ordination(physeq = combined_subset2, 
+                             ordination = unweighted_unifrac, 
+                             color = "sample_type",
+                             axes = c(1, 2)) +
+    geom_point(size = 5, alpha = 0.6) +
+    theme_minimal() +
+    scale_color_manual(values = colours) +
+    theme (axis.text.y = element_text(size=14, face = 'bold'),
+           axis.title.y = element_text(size=14, face = 'bold'),
+           axis.text.x = element_text(size=14, face = 'bold'),
+           axis.title.x = element_text(size=14, face = 'bold'),
+           legend.text = element_text(size = 14),
+           legend.position = "top", 
+           legend.title = element_blank()))
+
 # Adonis statistic to determine whether communities are significantly different
 #Refactor metadata
 md_combined_subset <- as(sample_data(combined_subset2), "data.frame")
@@ -113,10 +116,10 @@ uw_adonis <- adonis2(distance(combined_subset2, method="unifrac") ~ sample_type,
 uw_adonis
 
 # Combine the subsetted data ####
-combined_subset2 <- merge_phyloseq(egg_subset, prepupal_subset, adults_subset, larva_subset, frass_subset)
+combined_subset3 <- merge_phyloseq(egg_subset, prepupal_subset, adults_subset, larva_subset, frass_subset)
 
 # Obtain top 20 genera ####
-ps_Genus <- tax_glom(combined_subset2, taxrank = "Genus", NArm = FALSE)
+ps_Genus <- tax_glom(combined_subset3, taxrank = "Genus", NArm = FALSE)
 top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:20])
 taxtab20 = cbind(tax_table(ps_Genus), Genus_20 = NA)
 taxtab20[top20Genus, "Genus_20"] <- as(tax_table(ps_Genus)
@@ -136,30 +139,29 @@ df_Genus$sample_type <- factor(df_Genus$sample_type, levels = custom_order)
 custom_Cell_ID_order <- c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A")
 df_Genus$Cell_ID <- factor(df_Genus$Cell_ID, levels = custom_Cell_ID_order)
 
-(fig1a <- df_Genus %>%
+
+
+(Figure1A <- df_Genus %>%
   mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
   geom_bar(width = 1, stat = "identity") +
   scale_fill_manual(values = my_palette) +
   facet_nested(~ sample_type + Year + Cell_ID + sampleid, 
                scales = "free", 
-               space = "free",
-               ) +
-  coord_cartesian(expand = F) +
+               space = "free") +
   labs(x = "sampleid", y = "Relative abundance") +
   theme( 
-    axis.text.y = element_text(size = 16, face = 'bold'),
-    axis.title.y = element_text(size = 16, face = 'bold'),
+    axis.text.y = element_text(size = 14, face = 'bold'),
+    axis.title.y = element_text(size = 14, face = 'bold'),
     axis.ticks.y = element_line(linewidth = 1),
     axis.ticks.x = element_blank(),
     axis.text.x = element_blank(),
     axis.title.x = element_blank(),
     legend.title = element_blank(),
-    legend.text = element_text(size = 16),
+    legend.text = element_text(size = 14),
     legend.position = "bottom",
     strip.text = element_textbox_simple(
       padding = margin(2, 0, 2, 0),
-#      margin = margin(5, 5, 5, 5),
       size = 14,
       face = "bold",
       halign = 0.5,
@@ -172,8 +174,15 @@ df_Genus$Cell_ID <- factor(df_Genus$Cell_ID, levels = custom_Cell_ID_order)
 
 
 #use patchwork to stich a/b
-fig1a + fig1b +
-  plot_layout(widths = c(3, 1))
+Figure1 <- cowplot::plot_grid(Figure1A,
+                              Figure1B,
+                              ncol = 2,
+                              rel_heights = c(1,0.6),
+                              rel_widths = c(1, 0.5))
+Figure1
+
+
 
 #Save plot
-ggsave("figures/Figure1.png", height=9, width=15)
+ggsave("figures/Figure1.png", height=10, width=15)
+

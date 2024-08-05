@@ -14,6 +14,9 @@ library(forcats)
 library(ggforce)
 library(vegan)
 library(patchwork)
+library(cowplot)
+loadfonts(device = "win")
+
 
 # Load phyloseq object ####
 ps <- qza_to_phyloseq(
@@ -39,50 +42,143 @@ zero_abundance_samples <- sample_sums(ps) == 0
 ps <- subset_samples(ps, !zero_abundance_samples)
 ps
 
-# Subset the data for samples that underwent qPCRs (have CT scores)
-qPCRs <- subset_samples(ps, complete.cases(AVG_CTscore) &
-                          sample_type %in% c("Negative_control", "Food", "Adults", "Prepupae", "Honey_bee"))
+# Remove primary isolates
+ps <- subset_samples(ps, !sample_type %in% c("Primary_isolate")
+                     & !AB_treatment %in% c("control", "antibiotic"))
 
-# Make the phyloseq into a dataframe
-sample_data_df <- as.data.frame(sample_data(qPCRs))
+#Collapse to Genus level and pull our relative abundance of top 20 common genuses.
+ps_Genus <- tax_glom(ps, taxrank = "Genus", NArm = FALSE)
+top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:20])
+taxtab20 = cbind(tax_table(ps_Genus), Genus_20 = NA)
+taxtab20[top20Genus, "Genus_20"] <- as(tax_table(ps_Genus)
+                                       [top20Genus, "Genus"], "character")
 
-# Custom order for figure
-custom_order <- c("Negative_control", "Adults", "Prepupae", "Food", "Honey_bee")
-sample_data_df$sample_type <- factor(sample_data_df$sample_type, levels = custom_order)
+tax_table(ps_Genus) <- tax_table(taxtab20)
+ps_Genus_ra <- transform_sample_counts(ps_Genus, function(x) 100 * x/sum(x))
+df_Genus <- psmelt(ps_Genus_ra)
+df_Genus <- arrange(df_Genus, sample_type)
+df_Genus$Genus_20[is.na(df_Genus$Genus_20)] <- c("Other")
+mean(
+  sample_sums(
+    prune_taxa(top20Genus, ps_Genus_ra)
+  )
+)
 
-# Custom colors
-custom_colors <- c("control" = "#34C9CD", "antibiotic" = "#F87970", "NA" = "black")
+custom_order <- c("Mitochondria", "Chloroplast", "Pseudomonas", "Lactobacillus", "Staphylococcus", "Escherichia-Shigella", "Other", "Rhodococcus","Brevibacterium", "Bacillus", "Snodgrassella",  "Bartonella", "Erwinia", "Curtobacterium","Streptomyces", "Sphingobium", "Gilliamella", "Tyzzerella", "Acinetobacter")
+df_Genus$Genus_20 <- factor(df_Genus$Genus_20, levels = custom_order)
 
-# Convert NA values to strings so that they are still included in the plot
-sample_data_df$AB_treatment <- as.character(sample_data_df$AB_treatment)
-sample_data_df$AB_treatment[is.na(sample_data_df$AB_treatment)] <- "NA"
-sample_data_df$AB_treatment <- factor(sample_data_df$AB_treatment, levels = c("control", "antibiotic", "NA"))
-
-sample_data_df$Env_exposure <- as.character(sample_data_df$Env_exposure)
-sample_data_df$Env_exposure[is.na(sample_data_df$Env_exposure)] <- "NA"
-sample_data_df$Env_exposure <- factor(sample_data_df$Env_exposure, levels = c("Free-flying", "Nest_only", "None", "NA"))
-
-# Create the ggplot
-(qPCRPlot <- ggplot(sample_data_df, aes(x = sampleid, y = logDNA)) +
- geom_hline(aes(linetype = "limit of detection", yintercept = 2.339477 ), color = "green") +
-      geom_point(aes(
-   color = AB_treatment,
-   shape = Env_exposure
- ), size = 3, na.rm = TRUE) +
- scale_shape_manual(values = c(
-   "Free-flying" = 1,
-   "Nest_only" = 4,
-   "None" = 3,
-   "NA" = 16
- )) +
- scale_color_manual(values = custom_colors) +
- scale_y_continuous(name = "logDNA") +
- theme(axis.text.x = element_blank(),
-       strip.text = element_text(size = 12)) +
- facet_wrap(~sample_type, ncol = 5, scale = "free_x"))
+df_Genus <- df_Genus %>%
+  dplyr::mutate(sample_type2 = dplyr::if_else(sample_type == "Adults",
+                                              stringr::str_c("Tosti_", Env_exposure),
+                                              sample_type), .after = sample_type)
 
 
-# Save the figure 
-ggsave("figures/Figure5.png", height=10, width=15)
-   
-   
+
+order <- c("Negative_control", "Tosti_Free-flying", "Tosti_Nest_only", "Tosti_None", "Food", "Honey_bee")
+df_Genus$sample_type2 <- factor(df_Genus$sample_type2, levels=order)
+
+
+(absolutePlot <- df_Genus %>%
+    dplyr::filter(complete.cases(logDNA)) %>%
+    dplyr::distinct(sampleid, Genus_20, .keep_all = TRUE) %>%
+    dplyr::mutate(logDNA_weighted = logDNA*(Abundance/100)) %>%
+    ggplot(aes(x = sampleid)) +
+    geom_col(width = 1, aes(fill = Genus_20, y = logDNA_weighted)) +
+    scale_fill_manual(values = my_palette) +
+    facet_nested(~ sample_type2, scales = "free", space = "free") +
+    labs(x = "sampleid", y = "Absolute abundance (ng)") +
+    theme( 
+      axis.text.y = element_text(size=14, face = "bold"),
+      axis.title.y = element_text(size=14, face = "bold"),
+      axis.ticks.y = element_line(linewidth = 1),
+      axis.text.x = element_blank(),
+      axis.title.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      legend.title = element_blank(),
+      legend.text = element_text(size = 12),
+      legend.position = "none",
+      strip.background = element_blank(),
+      strip.text = element_textbox_simple(
+        padding = margin(5, 0, 5, 0),
+        margin = margin(5, 5, 5, 5),
+        size = 16,
+        face = "bold",
+        halign = 0.5,
+        fill = "white",
+        box.color = "grey",
+        linewidth = 1.5,
+        linetype = "solid",),
+      panel.background = element_blank()
+    ))
+
+(relativeBar <- df_Genus %>%
+    dplyr::filter(complete.cases(logDNA)) %>%
+    ggplot(aes(x = sampleid, y = Abundance, fill = Genus_20)) +
+    geom_bar(width = 1, stat = "identity") +
+    scale_fill_manual(values = my_palette) +
+    facet_nested(~ sample_type2 , scales = "free", space = "free") +
+    labs(x = "sampleid", y = "Relative abundance") +
+    theme( 
+      axis.text.y = element_text(size=14, face = "bold"),
+      axis.title.y = element_text(size=14, face = "bold"),
+      axis.ticks.y = element_line(linewidth = 1),
+      axis.text.x = element_blank(),
+      axis.title.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      legend.title = element_blank(),
+      legend.text = element_text(size = 12),
+      legend.position = "none",
+      strip.background = element_blank(),
+      strip.text = element_blank(),
+      panel.background = element_blank()
+    ))
+
+
+
+(legendPlot <- df_Genus %>%
+    dplyr::filter(complete.cases(logDNA)) %>%
+    dplyr::distinct(sampleid, Genus_20, .keep_all = TRUE) %>%
+    mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
+    dplyr::mutate(logDNA_weighted = logDNA*(Abundance/100)) %>%
+    ggplot(aes(x = sampleid)) +
+    geom_col(width = 1, aes(fill = Genus_20, y = logDNA_weighted)) +
+    scale_fill_manual(values = my_palette) +
+    facet_nested(~ sample_type2 , scales = "free", space = "free") +
+    #facet_nested(~ sample_type , scales = "free", space = "free") +
+    labs(x = "sampleid", y = "Relative abundance") +
+    theme( 
+      axis.text.y = element_text(size=12, face =, 'bold'),
+      axis.title.y = element_text(size=12, face = 'bold'),
+      axis.ticks.y = element_line(linewidth = 1),
+      axis.text.x = element_blank(),
+      axis.title.x = element_blank(),
+      legend.title = element_blank(),
+      legend.text = element_text(size = 14),
+      legend.position = "bottom",
+      strip.background = element_blank(),
+      strip.text = element_textbox_simple(
+        padding = margin(5, 0, 5, 0),
+        margin = margin(5, 5, 5, 5),
+        size = 16,
+        face = "bold",
+        halign = 0.5,
+        fill = "white",
+        box.color = "grey",
+        linewidth = 1.5,
+        linetype = "solid",),
+      panel.background = element_blank()
+    ))
+
+
+(abundancesplot_nolegend <- plot_grid(absolutePlot, relativeBar, ncol = 1, align = "hv"))
+
+(Abundances_plot <- cowplot::plot_grid(abundancesplot_nolegend,
+                                       cowplot::get_legend(legendPlot),
+                                       cols = 1,
+                                       rel_heights = c(1.3, 0.2)
+                                       ))
+
+
+
+ggsave("figures/Figure6.png", height=10, width=15)
+
