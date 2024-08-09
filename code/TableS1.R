@@ -41,8 +41,6 @@ Honey_bee <- subset_samples(ps, sample_type %in% c("Honey_bee"))
 Food <- subset_samples(ps, sample_type %in% c("Food"))
 AdultsFree <- subset_samples(ps, Env_exposure %in% c("Free-flying")) #seperate only natural adult samples
 
-antibiotic <- subset_samples(ps, AB_treatment %in% c("antibiotic"))
-control <- subset_samples(ps, AB_treatment %in% c("control"))
 AdultsNest <- subset_samples(ps, Env_exposure %in% c("Nest_only"))
 AdultsNone <- subset_samples(ps, Env_exposure %in% c("None"))
 
@@ -60,8 +58,6 @@ percentage_Chloroplast_Larva
 percentage_Chloroplast_Prepupae
 percentage_Chloroplast_HB
 
-percentage_Chloroplast_antibiotic <- compute_percentage("Chloroplast", antibiotic) 
-percentage_Chloroplast_control <- compute_percentage("Chloroplast", control) 
 percentage_Chloroplast_AdultsNest <- compute_percentage("Chloroplast", AdultsNest)
 percentage_Chloroplast_AdultsNone <- compute_percentage("Chloroplast", AdultsNone)
 
@@ -83,13 +79,9 @@ percentage_Mitochondria_Larva
 percentage_Mitochondria_Prepupae
 percentage_Mitochondria_HB
 
-percentage_Mitochondria_antibiotic <- compute_percentage("Mitochondria", antibiotic) 
-percentage_Mitochondria_control <- compute_percentage("Mitochondria", control) 
 percentage_Mitochondria_AdultsNest <- compute_percentage("Mitochondria", AdultsNest)
 percentage_Mitochondria_AdultsNone <- compute_percentage("Mitochondria", AdultsNone)
 
-percentage_Mitochondria_antibiotic
-percentage_Mitochondria_control
 percentage_Mitochondria_AdultsNest
 percentage_Mitochondria_AdultsNone
 
@@ -131,18 +123,6 @@ percentage_remaining <- (total_reads_ps_no_contam / total_reads_ps) * 100
 #Honey bee contamination %
 total_reads_ps <- sum(rowSums(as.data.frame(otu_table(subset_samples(ps, sample_type == c("Honey_bee")))))) 
 total_reads_ps_no_contam <- sum(rowSums(as.data.frame(otu_table(subset_samples(ps_no_contam, sample_type == "Honey_bee"))))) 
-percentage_remaining <- (total_reads_ps_no_contam / total_reads_ps) * 100
-100 - percentage_remaining
-
-# Antibiotic prepupae contamination %
-total_reads_ps <- sum(rowSums(as.data.frame(otu_table(subset_samples(ps, AB_treatment %in% c("antibiotic"))))))
-total_reads_ps_no_contam <- sum(rowSums(as.data.frame(otu_table(subset_samples(ps_no_contam, AB_treatment %in% c("antibiotic"))))))
-percentage_remaining <- (total_reads_ps_no_contam / total_reads_ps) * 100
-100 - percentage_remaining
-
-# Control prepupae contamination %
-total_reads_ps <- sum(rowSums(as.data.frame(otu_table(subset_samples(ps, AB_treatment %in% c("control"))))))
-total_reads_ps_no_contam <- sum(rowSums(as.data.frame(otu_table(subset_samples(ps_no_contam, AB_treatment %in% c("control"))))))
 percentage_remaining <- (total_reads_ps_no_contam / total_reads_ps) * 100
 100 - percentage_remaining
 
@@ -196,18 +176,6 @@ percentage_remaining
 #honey bee working biomass
 total_reads_ps <- sum(rowSums(as.data.frame(otu_table(subset_samples(ps, sample_type == c("Honey_bee")))))) #replace with sample_type in question
 total_reads_ps_filtered <- sum(rowSums(as.data.frame(otu_table(subset_samples(ps_filtered, sample_type == "Honey_bee"))))) #replace with sample_type in question
-percentage_remaining <- (total_reads_ps_filtered / total_reads_ps) * 100
-percentage_remaining
-
-# antibiotic prepupae working biomass
-total_reads_ps <- sum(rowSums(as.data.frame(otu_table(subset_samples(ps, AB_treatment %in% c("antibiotic"))))))
-total_reads_ps_filtered <- sum(rowSums(as.data.frame(otu_table(subset_samples(ps_filtered, AB_treatment %in% c("antibiotic"))))))
-percentage_remaining <- (total_reads_ps_filtered / total_reads_ps) * 100
-percentage_remaining
-
-# control prepupae working biomass
-total_reads_ps <- sum(rowSums(as.data.frame(otu_table(subset_samples(ps, AB_treatment %in% c("control"))))))
-total_reads_ps_filtered <- sum(rowSums(as.data.frame(otu_table(subset_samples(ps_filtered, AB_treatment %in% c("control"))))))
 percentage_remaining <- (total_reads_ps_filtered / total_reads_ps) * 100
 percentage_remaining
 
