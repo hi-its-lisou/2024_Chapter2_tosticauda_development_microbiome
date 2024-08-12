@@ -2,7 +2,6 @@
 library(phyloseq)
 library(tidyverse)
 library(qiime2R)
-library(decontam)
 library(microbiome)
 library(ggh4x)
 library(ggtext)
@@ -24,13 +23,8 @@ ps <- qza_to_phyloseq(
 ps@sam_data$sampleid = rownames(ps@sam_data)
 ps
 
-
 # Load custom colour palette ####
-colours_df <- file.path(
-  "D:/Research/PhD/Manuscripts/Chapter 2/Git/2024_Chapter2_tosticauda_development_microbiome/input_files/",
-  "colour_list.csv"
-) %>% read_csv
-
+colours_df <- read_csv("input_files/colour_list.csv")
 my_palette <- colours_df$colours
 names(my_palette) <- colours_df$genera
 my_palette
@@ -61,41 +55,27 @@ prepupal_subset <- subset_samples(filtered_physeq,
 adults_subset <- subset_samples(filtered_physeq, 
                                 sample_type == "Adults" & 
                                   Env_exposure == "Free-flying")
-larva_subset <- subset_samples(filtered_physeq, sample_type %in% c("Larvae"))
-egg_subset <- subset_samples(filtered_physeq, sample_type %in% c("Eggs"))
+larva_subset <- subset_samples(filtered_physeq, sample_type %in% c("Larvae")
+                               & Year %in% c("2022"))
 frass_subset <- subset_samples(filtered_physeq, Description_of_sample %in% c("CocoonFrass", "Frass", "PinkCocoonFrass"))
 frass_subset@sam_data$sample_type[which(frass_subset@sam_data$sample_type == "Nest_contents")] <- "Frass contents"
 HB_subset <- subset_samples(filtered_physeq, sample_type %in% c("Honey_bee"))
 
-# Compare the alpha diversity of tosti samples with honey bees ####
-combined_subset1 <- merge_phyloseq(egg_subset, prepupal_subset, adults_subset, larva_subset, frass_subset, HB_subset)
-
-alpha_diversity <- alpha(combined_subset1, index = "Shannon")
-metadata <- meta(combined_subset1)
-metadata$name <- rownames(metadata)
-alpha_diversity$name <- rownames(alpha_diversity)
-alpha_diversity_metadata <- merge(alpha_diversity, metadata, by = "name")
-
-#Plot the alpha diversity
-alpha_diversity_metadata %>%
-  ggplot(aes(x = sample_type, y = diversity_shannon, colour = sample_type)) +
-  geom_boxplot() +
-  geom_point(size = 3)
-
 ### Analysis development stages ###
 # Compare the beta diversity of the different development stages ####
-combined_subset2 <- merge_phyloseq(prepupal_subset, adults_subset, larva_subset)
-unweighted_unifrac <- ordinate(combined_subset2, method = "PCoA", distance = "unifrac", weighted=F)
+development <- merge_phyloseq(prepupal_subset, adults_subset, larva_subset)
+unweighted_unifrac <- ordinate(development, method = "PCoA", distance = "unifrac", weighted=F)
 
 
 colours <- c("#f87970", "green", "#4B0092")
 
 
-(Figure1B <- plot_ordination(physeq = combined_subset2, 
+(Figure1B <- plot_ordination(physeq = development, 
                              ordination = unweighted_unifrac, 
                              color = "sample_type",
                              axes = c(1, 2)) +
     geom_point(size = 5, alpha = 0.6) +
+    stat_ellipse(geom = "polygon", type="norm", alpha=0) +
     theme_minimal() +
     scale_color_manual(values = colours) +
     theme (axis.text.y = element_text(size=14, face = 'bold'),
@@ -108,18 +88,18 @@ colours <- c("#f87970", "green", "#4B0092")
 
 # Adonis statistic to determine whether communities are significantly different
 #Refactor metadata
-md_combined_subset <- as(sample_data(combined_subset2), "data.frame")
+md_combined_subset <- as(sample_data(development), "data.frame")
 #Run adonis with 9999 permutations
-uw_adonis <- adonis2(distance(combined_subset2, method="unifrac") ~ sample_type, 
+uw_adonis <- adonis2(distance(development, method="unifrac") ~ sample_type, 
                      data = md_combined_subset, 
                      permutations = 9999)
 uw_adonis
 
 # Combine the subsetted data ####
-combined_subset3 <- merge_phyloseq(egg_subset, prepupal_subset, adults_subset, larva_subset, frass_subset)
+combined_subset <- merge_phyloseq(prepupal_subset, adults_subset, larva_subset, frass_subset)
 
 # Obtain top 20 genera ####
-ps_Genus <- tax_glom(combined_subset3, taxrank = "Genus", NArm = FALSE)
+ps_Genus <- tax_glom(combined_subset, taxrank = "Genus", NArm = FALSE)
 top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:20])
 taxtab20 = cbind(tax_table(ps_Genus), Genus_20 = NA)
 taxtab20[top20Genus, "Genus_20"] <- as(tax_table(ps_Genus)
@@ -132,7 +112,7 @@ df_Genus$Genus_20[is.na(df_Genus$Genus_20)] <- c("Other")
 
 # Plot the relative abundance ####
 # Custom order for sample types
-custom_order <- c("Adults", "Eggs", "Larvae", "Prepupae", "Frass contents")
+custom_order <- c("Adults", "Larvae", "Prepupae", "Frass contents")
 df_Genus$sample_type <- factor(df_Genus$sample_type, levels = custom_order)
 
 # Custom order for cell ID from youngest to oldest
@@ -184,5 +164,5 @@ Figure1
 
 
 #Save plot
-ggsave("figures/Figure1.png", height=10, width=15)
+ggsave("figures/Figure1.png", height=8, width=14)
 
