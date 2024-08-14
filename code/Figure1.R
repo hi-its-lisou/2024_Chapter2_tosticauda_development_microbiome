@@ -110,6 +110,7 @@ df_Genus <- psmelt(ps_Genus_ra)
 df_Genus <- arrange(df_Genus, sample_type)
 df_Genus$Genus_20[is.na(df_Genus$Genus_20)] <- c("Other")
 
+
 # Plot the relative abundance ####
 # Custom order for sample types
 custom_order <- c("Adults", "Larvae", "Prepupae", "Frass contents")
