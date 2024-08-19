@@ -66,9 +66,7 @@ HB_subset <- subset_samples(filtered_physeq, sample_type %in% c("Honey_bee"))
 development <- merge_phyloseq(prepupal_subset, adults_subset, larva_subset)
 unweighted_unifrac <- ordinate(development, method = "PCoA", distance = "unifrac", weighted=F)
 
-
 colours <- c("#f87970", "green", "#4B0092")
-
 
 (Figure1B <- plot_ordination(physeq = development, 
                              ordination = unweighted_unifrac, 
@@ -99,30 +97,43 @@ uw_adonis
 combined_subset <- merge_phyloseq(prepupal_subset, adults_subset, larva_subset, frass_subset)
 
 # Obtain top 20 genera ####
-ps_Genus <- tax_glom(combined_subset, taxrank = "Genus", NArm = FALSE)
-top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:20])
-taxtab20 = cbind(tax_table(ps_Genus), Genus_20 = NA)
-taxtab20[top20Genus, "Genus_20"] <- as(tax_table(ps_Genus)
-                                       [top20Genus, "Genus"], "character")
-tax_table(ps_Genus) <- tax_table(taxtab20)
-ps_Genus_ra <- transform_sample_counts(ps_Genus, function(x) 100 * x/sum(x))
-df_Genus <- psmelt(ps_Genus_ra)
-df_Genus <- arrange(df_Genus, sample_type)
-df_Genus$Genus_20[is.na(df_Genus$Genus_20)] <- c("Other")
+ps_Genus1 <- tax_glom(combined_subset, taxrank = "Genus", NArm = FALSE)
+
+if ("Family" %in% colnames(tax_table(ps_Genus1))) {
+  
+  # Replace NA values in the Genus column with "Family_unknown"
+  tax_table(ps_Genus1)[is.na(tax_table(ps_Genus1)[, "Genus"]), "Genus"] <- 
+    paste(as.character(tax_table(ps_Genus1)[is.na(tax_table(ps_Genus1)[, "Genus"]), "Family"]), "unclassified", sep = "_")
+  
+} else {
+  # If the Family column doesn't exist, just replace NA with "Unknown"
+  tax_table(ps_Genus1)[is.na(tax_table(ps_Genus1)[, "Genus"]), "Genus"] <- "Unclassified"
+}
+
+top20Genus1 = names(sort(taxa_sums(ps_Genus1), TRUE)[1:19])
+taxtab20 = cbind(tax_table(ps_Genus1), Genus_20 = NA)
+taxtab20[top20Genus1, "Genus_20"] <- as(tax_table(ps_Genus1)
+                                       [top20Genus1, "Genus"], "character")
+tax_table(ps_Genus1) <- tax_table(taxtab20)
+ps_Genus1_ra <- transform_sample_counts(ps_Genus1, function(x) 100 * x/sum(x))
+df_Genus1 <- psmelt(ps_Genus1_ra)
+df_Genus1 <- arrange(df_Genus1, sample_type)
+df_Genus1$Genus_20[is.na(df_Genus1$Genus_20)] <- c("Other")
+
+# View the result
+print(unique(df_Genus1$Genus_20))
 
 
 # Plot the relative abundance ####
 # Custom order for sample types
 custom_order <- c("Adults", "Larvae", "Prepupae", "Frass contents")
-df_Genus$sample_type <- factor(df_Genus$sample_type, levels = custom_order)
+df_Genus1$sample_type <- factor(df_Genus1$sample_type, levels = custom_order)
 
 # Custom order for cell ID from youngest to oldest
 custom_Cell_ID_order <- c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A")
-df_Genus$Cell_ID <- factor(df_Genus$Cell_ID, levels = custom_Cell_ID_order)
+df_Genus1$Cell_ID <- factor(df_Genus1$Cell_ID, levels = custom_Cell_ID_order)
 
-
-
-(Figure1A <- df_Genus %>%
+(Figure1A <- df_Genus1 %>%
   mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
   geom_bar(width = 1, stat = "identity") +
@@ -162,8 +173,6 @@ Figure1 <- cowplot::plot_grid(Figure1A,
                               rel_widths = c(1, 0.5))
 Figure1
 
-
-
 #Save plot
-ggsave("figures/Figure1.png", height=8, width=14)
+ggsave("figures/Figure1.png", height=10, width=18)
 

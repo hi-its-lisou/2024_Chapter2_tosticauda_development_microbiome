@@ -40,45 +40,52 @@ ps_rar <- prune_taxa(asvs_to_keep, ps_rar)
 ps_rar
 
 # Load custom colour palette ####
-colours_df <- file.path(
-  "D:/Research/PhD/Manuscripts/Chapter 2/Git/2024_Chapter2_tosticauda_development_microbiome/input_files/",
-  "colour_list.csv"
-) %>% read_csv
-
+colours_df <- read_csv("input_files/colour_list.csv")
 my_palette <- colours_df$colours
 names(my_palette) <- colours_df$genera
 my_palette
-
 
 # Subset the data for adults in the acquisition experiment ####
 adults2023 <- subset_samples(ps_rar, sample_type %in% c("Adults"))
 adults2023
 
-# Beta diversity - PCOA ordination of unweighted UniFrac distances ####
-unweighted_unifrac <- ordinate(adults2023, method = "PCoA", distance = "unifrac", weighted=F)
-
 # Obtain top 20 genera ####
-ps_Genus <- tax_glom(adults2023, taxrank = "Genus", NArm = FALSE)
-top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:20])
-taxtab20 = cbind(tax_table(ps_Genus), Genus_20 = NA)
-taxtab20[top20Genus, "Genus_20"] <- as(tax_table(ps_Genus)
-                                       [top20Genus, "Genus"], "character")
-tax_table(ps_Genus) <- tax_table(taxtab20)
-ps_Genus_ra <- transform_sample_counts(ps_Genus, function(x) 100 * x/sum(x))
-df_Genus <- psmelt(ps_Genus_ra)
-df_Genus <- arrange(df_Genus, sample_type)
-df_Genus$Genus_20[is.na(df_Genus$Genus_20)] <- c("Other")
+ps_Genus3 <- tax_glom(adults2023, taxrank = "Genus", NArm = FALSE)
+
+# Ensure the taxonomy table has a Family column
+if ("Family" %in% colnames(tax_table(ps_Genus3))) {
+  
+  # Replace NA values in the Genus column with "Family_unknown"
+  tax_table(ps_Genus3)[is.na(tax_table(ps_Genus3)[, "Genus"]), "Genus"] <- 
+    paste(as.character(tax_table(ps_Genus3)[is.na(tax_table(ps_Genus3)[, "Genus"]), "Family"]), "unclassified", sep = "_")
+  
+} else {
+  # If the Family column doesn't exist, just replace NA with "Unknown"
+  tax_table(ps_Genus3)[is.na(tax_table(ps_Genus3)[, "Genus"]), "Genus"] <- "Unclassified"
+}
+
+top20Genus3 = names(sort(taxa_sums(ps_Genus3), TRUE)[1:19])
+taxtab20 = cbind(tax_table(ps_Genus3), Genus_20 = NA)
+taxtab20[top20Genus3, "Genus_20"] <- as(tax_table(ps_Genus3)
+                                       [top20Genus3, "Genus"], "character")
+tax_table(ps_Genus3) <- tax_table(taxtab20)
+ps_Genus3_ra <- transform_sample_counts(ps_Genus3, function(x) 100 * x/sum(x))
+df_Genus3 <- psmelt(ps_Genus3_ra)
+df_Genus3 <- arrange(df_Genus3, sample_type)
+df_Genus3$Genus_20[is.na(df_Genus3$Genus_20)] <- c("Other")
+
+# View the result
+print(unique(df_Genus3$Genus_20))
 
 # % of reads that make up the top 20 genera ####
 mean(
   sample_sums(
-    prune_taxa(top20Genus, ps_Genus_ra)
+    prune_taxa(top20Genus3, ps_Genus3_ra)
   )
 )
 
-
 # Plot the relative abundance ####
-(Figure3A <- df_Genus %>%
+(Figure3A <- df_Genus3 %>%
   mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
   geom_bar(width = 1, stat = "identity") +
@@ -110,10 +117,11 @@ mean(
     panel.background = element_blank()
   ))
 
-
+# Beta diversity - PCOA ordination of unweighted UniFrac distances ####
+unweighted_unifrac <- ordinate(adults2023, method = "PCoA", distance = "unifrac", weighted=F)
 
 adults_colours <- c("#f87970", "#1E88E5", "#FFC107")
-#Axes 1/2 ---- variation, 
+
 (Figure3B <- plot_ordination(physeq = adults2023, 
                              ordination = unweighted_unifrac, 
                              color = "Env_exposure",
@@ -137,12 +145,7 @@ AE_plot <- cowplot::plot_grid(Figure3A,
                                rel_widths = c(1, 0.5))
 AE_plot
 # Save plot ####
-ggsave("figures/Figure3.png", height=10, width=15)
-
-
-
-
-
+ggsave("figures/Figure3.png", height=10, width=20)
 
 
 # Alpha diversity of pollen provisions as they are consumed ####

@@ -15,8 +15,6 @@ library(ggforce)
 library(vegan)
 library(patchwork)
 library(cowplot)
-loadfonts(device = "win")
-
 
 # Load phyloseq object ####
 ps <- qza_to_phyloseq(
@@ -28,11 +26,7 @@ ps@sam_data$sampleid = rownames(ps@sam_data)
 ps
 
 # Load custom colour palette ####
-colours_df <- file.path(
-  "D:/Research/PhD/Manuscripts/Chapter 2/Git/2024_Chapter2_tosticauda_development_microbiome/input_files/",
-  "colour_list.csv"
-) %>% read_csv
-
+colours_df <- read_csv("input_files/colour_list.csv")
 my_palette <- colours_df$colours
 names(my_palette) <- colours_df$genera
 my_palette
@@ -47,38 +41,74 @@ ps <- subset_samples(ps, !sample_type %in% c("Primary_isolate")
                      & !AB_treatment %in% c("control", "antibiotic"))
 
 #Collapse to Genus level and pull our relative abundance of top 20 common genuses.
-ps_Genus <- tax_glom(ps, taxrank = "Genus", NArm = FALSE)
-top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:20])
-taxtab20 = cbind(tax_table(ps_Genus), Genus_20 = NA)
-taxtab20[top20Genus, "Genus_20"] <- as(tax_table(ps_Genus)
-                                       [top20Genus, "Genus"], "character")
+ps_Genus5 <- tax_glom(ps, taxrank = "Genus", NArm = FALSE)
 
-tax_table(ps_Genus) <- tax_table(taxtab20)
-ps_Genus_ra <- transform_sample_counts(ps_Genus, function(x) 100 * x/sum(x))
-df_Genus <- psmelt(ps_Genus_ra)
-df_Genus <- arrange(df_Genus, sample_type)
-df_Genus$Genus_20[is.na(df_Genus$Genus_20)] <- c("Other")
+if ("Family" %in% colnames(tax_table(ps_Genus5))) {
+  
+  # Replace NA values in the Genus column with "Family_unknown"
+  tax_table(ps_Genus5)[is.na(tax_table(ps_Genus5)[, "Genus"]), "Genus"] <- 
+    paste(as.character(tax_table(ps_Genus5)[is.na(tax_table(ps_Genus5)[, "Genus"]), "Family"]), "unclassified", sep = "_")
+  
+} else {
+  # If the Family column doesn't exist, just replace NA
+  tax_table(ps_Genus5)[is.na(tax_table(ps_Genus5)[, "Genus"]), "Genus"] <- "Unclassified"
+}
+
+# Replace "NA" (as a string) in the Genus column with "NA_unclassified"
+tax_table(ps_Genus5)[tax_table(ps_Genus5)[, "Genus"] == "NA", "Genus"] <- "NA_unclassified"
+tax_table(ps_Genus5)[tax_table(ps_Genus5)[, "Genus"] == "<NA>", "Genus"] <- "NA_unclassified"
+
+top20Genus5 = names(sort(taxa_sums(ps_Genus5), TRUE)[1:19])
+taxtab20 = cbind(tax_table(ps_Genus5), Genus_20 = NA)
+taxtab20[top20Genus5, "Genus_20"] <- as(tax_table(ps_Genus5)
+                                       [top20Genus5, "Genus"], "character")
+
+tax_table(ps_Genus5) <- tax_table(taxtab20)
+ps_Genus5_ra <- transform_sample_counts(ps_Genus5, function(x) 100 * x/sum(x))
+df_Genus5 <- psmelt(ps_Genus5_ra)
+df_Genus5 <- arrange(df_Genus5, sample_type)
+df_Genus5$Genus_20[is.na(df_Genus5$Genus_20)] <- c("Other")
 mean(
   sample_sums(
-    prune_taxa(top20Genus, ps_Genus_ra)
+    prune_taxa(top20Genus5, ps_Genus5_ra)
   )
 )
 
-custom_order <- c("Mitochondria", "Chloroplast", "Pseudomonas", "Lactobacillus", "Staphylococcus", "Escherichia-Shigella", "Other", "Rhodococcus","Brevibacterium", "Bacillus", "Snodgrassella",  "Bartonella", "Erwinia", "Curtobacterium","Streptomyces", "Sphingobium", "Gilliamella", "Tyzzerella", "Acinetobacter")
-df_Genus$Genus_20 <- factor(df_Genus$Genus_20, levels = custom_order)
+print(unique(df_Genus5$Genus_20))
 
-df_Genus <- df_Genus %>%
+custom_order <- c("Mitochondria", 
+                  "Chloroplast", 
+                  "Acinetobacter",
+                  "Pseudomonas", 
+                  "Tyzzerella",
+                  "Lactobacillus",
+                  "Sodalis", 
+                  "Sphingobium", 
+                  "Bacillus",
+                  "Enterobacteriaceae_unclassified", 
+                  "Erwiniaceae_unclassified", 
+                  "Escherichia-Shigella",  
+                  "Commensalibacter",
+                  "Gilliamella", 
+                  "Snodgrassella", 
+                  "Bifidobacterium",
+                  "Bartonella", 
+                  "Brevibacterium",
+                  "NA_unclassified", 
+                  "Other")
+                  
+df_Genus5$Genus_20 <- factor(df_Genus5$Genus_20, levels = custom_order)
+
+df_Genus5 <- df_Genus5 %>%
   dplyr::mutate(sample_type2 = dplyr::if_else(sample_type == "Adults",
                                               stringr::str_c("Tosti_", Env_exposure),
                                               sample_type), .after = sample_type)
 
-
-
 order <- c("Negative_control", "Tosti_Free-flying", "Tosti_Nest_only", "Tosti_None", "Food", "Honey_bee")
-df_Genus$sample_type2 <- factor(df_Genus$sample_type2, levels=order)
+df_Genus5$sample_type2 <- factor(df_Genus5$sample_type2, levels=order)
 
 
-(absolutePlot <- df_Genus %>%
+(absolutePlot <- df_Genus5 %>%
     dplyr::filter(complete.cases(logDNA)) %>%
     dplyr::distinct(sampleid, Genus_20, .keep_all = TRUE) %>%
     dplyr::mutate(logDNA_weighted = logDNA*(Abundance/100)) %>%
@@ -111,7 +141,7 @@ df_Genus$sample_type2 <- factor(df_Genus$sample_type2, levels=order)
       panel.background = element_blank()
     ))
 
-(relativeBar <- df_Genus %>%
+(relativeBar <- df_Genus5 %>%
     dplyr::filter(complete.cases(logDNA)) %>%
     ggplot(aes(x = sampleid, y = Abundance, fill = Genus_20)) +
     geom_bar(width = 1, stat = "identity") +
@@ -135,7 +165,7 @@ df_Genus$sample_type2 <- factor(df_Genus$sample_type2, levels=order)
 
 
 
-(legendPlot <- df_Genus %>%
+(legendPlot <- df_Genus5 %>%
     dplyr::filter(complete.cases(logDNA)) %>%
     dplyr::distinct(sampleid, Genus_20, .keep_all = TRUE) %>%
     mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
@@ -178,7 +208,5 @@ df_Genus$sample_type2 <- factor(df_Genus$sample_type2, levels=order)
                                        rel_heights = c(1.3, 0.2)
                                        ))
 
-
-
-ggsave("figures/Figure6.png", height=10, width=15)
+ggsave("figures/Figure5.png", height=10, width=15)
 
