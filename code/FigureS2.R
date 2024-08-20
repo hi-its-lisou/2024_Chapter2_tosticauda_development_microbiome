@@ -25,7 +25,20 @@ supp_adults2023
 
 # Obtain top 20 genera ####
 ps_Genus <- tax_glom(supp_adults2023, taxrank = "Genus", NArm = FALSE)
-top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:20])
+
+# Ensure the taxonomy table has a Family column
+if ("Family" %in% colnames(tax_table(ps_Genus))) {
+  
+  # Replace NA values in the Genus column with "Family_unknown"
+  tax_table(ps_Genus)[is.na(tax_table(ps_Genus)[, "Genus"]), "Genus"] <- 
+    paste(as.character(tax_table(ps_Genus)[is.na(tax_table(ps_Genus)[, "Genus"]), "Family"]), "unclassified", sep = "_")
+  
+} else {
+  # If the Family column doesn't exist, just replace NA with "Unknown"
+  tax_table(ps_Genus)[is.na(tax_table(ps_Genus)[, "Genus"]), "Genus"] <- "Unclassified"
+}
+
+top20Genus = names(sort(taxa_sums(ps_Genus), TRUE)[1:19])
 taxtab20 = cbind(tax_table(ps_Genus), Genus_20 = NA)
 taxtab20[top20Genus, "Genus_20"] <- as(tax_table(ps_Genus)
                                        [top20Genus, "Genus"], "character")
@@ -36,11 +49,7 @@ df_Genus <- arrange(df_Genus, sample_type)
 df_Genus$Genus_20[is.na(df_Genus$Genus_20)] <- c("Other")
 
 # Load custom colour palette ####
-colours_df <- file.path(
-  "D:/Research/PhD/Manuscripts/Chapter 2/Git/2024_Chapter2_tosticauda_development_microbiome/input_files/",
-  "colour_list.csv"
-) %>% read_csv
-
+colours_df <- read_csv("input_files/colour_list.csv")
 my_palette <- colours_df$colours
 names(my_palette) <- colours_df$genera
 my_palette
@@ -61,7 +70,7 @@ my_palette
     axis.text.x = element_blank(),
     axis.title.x = element_blank(),
     legend.title = element_blank(),
-    legend.text = element_text(size = 18),
+    legend.text = element_text(size = 14),
     legend.position = "bottom",
     strip.background = element_blank(),
     strip.text = element_textbox_simple(
@@ -78,5 +87,5 @@ my_palette
   ))
 
 #Save plot
-ggsave("Supp2.png", height=15, width=30)
+ggsave("figures/S2.png", height=10, width=15)
 

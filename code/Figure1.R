@@ -96,6 +96,9 @@ uw_adonis
 # Combine the subsetted data ####
 combined_subset <- merge_phyloseq(prepupal_subset, adults_subset, larva_subset, frass_subset)
 
+# Determine the number of reads per sample ####
+sort(sample_sums(combined_subset))
+
 # Obtain top 20 genera ####
 ps_Genus1 <- tax_glom(combined_subset, taxrank = "Genus", NArm = FALSE)
 
@@ -122,7 +125,6 @@ df_Genus1$Genus_20[is.na(df_Genus1$Genus_20)] <- c("Other")
 
 # View the result
 print(unique(df_Genus1$Genus_20))
-
 
 # Plot the relative abundance ####
 # Custom order for sample types
@@ -154,7 +156,7 @@ df_Genus1$Cell_ID <- factor(df_Genus1$Cell_ID, levels = custom_Cell_ID_order)
     legend.position = "bottom",
     strip.text = element_textbox_simple(
       padding = margin(2, 0, 2, 0),
-      size = 14,
+      size = 12,
       face = "bold",
       halign = 0.5,
       fill = "grey",

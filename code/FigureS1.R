@@ -24,16 +24,6 @@ ps <- qza_to_phyloseq(
 ps@sam_data$sampleid = rownames(ps@sam_data)
 ps
 
-# Load custom colour palette ####
-colours_df <- file.path(
-  "D:/Research/PhD/Manuscripts/Chapter 2/Git/2024_Chapter2_tosticauda_development_microbiome/input_files/",
-  "colour_list.csv"
-) %>% read_csv
-
-my_palette <- colours_df$colours
-names(my_palette) <- colours_df$genera
-my_palette
-
 # Rarefy ####
 ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337)
 
@@ -56,26 +46,58 @@ filtered_physeq <- subset_samples(ps, !zero_abundance_samples)
 filtered_physeq
 
 # Subset the data for samples_types ####
-food_through_time <- subset_samples(filtered_physeq, sample_type %in% c("Food") 
+food_with_brood_through_time <- subset_samples(filtered_physeq, sample_type %in% c("Food") 
                                     & Nest_id %in% c("5", "13", "14", "27")
                                     & Cell_ID %in% c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A"))
-food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "5")] <- "1"
-food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "13")] <- "2"
-food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "14")] <- "3"
-food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "27")] <- "4"
+food_with_brood_through_time@sam_data$Nest_id[which(food_with_brood_through_time@sam_data$Nest_id == "5")] <- "1"
+food_with_brood_through_time@sam_data$Nest_id[which(food_with_brood_through_time@sam_data$Nest_id == "13")] <- "2"
+food_with_brood_through_time@sam_data$Nest_id[which(food_with_brood_through_time@sam_data$Nest_id == "14")] <- "3"
+
+
 
 # Alpha diversity of pollen provisions as they are consumed ####
-alpha_diversity <- alpha(food_through_time, index = "Shannon")
-metadata <- meta(food_through_time)
+alpha_diversity <- alpha(food_with_brood_through_time, index = "Shannon")
+metadata <- meta(food_with_brood_through_time)
 metadata$name <- rownames(metadata)
 alpha_diversity$name <- rownames(alpha_diversity)
 alpha_diversity_metadata <- merge(alpha_diversity, metadata, by = "name")
 
-# Box plot for alpha diversity ####
-alpha_diversity_metadata %>%
+# Set the factor levels for Cell_ID in the merged dataframe
+custom_Cell_ID_order <- c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A")
+alpha_diversity_metadata$Cell_ID <- factor(alpha_diversity_metadata$Cell_ID, levels = custom_Cell_ID_order)
+
+# Create the plot with regression line and R-squared annotation
+boxplot <- alpha_diversity_metadata %>%
   ggplot(aes(x = Cell_ID, y = diversity_shannon, colour = Cell_ID)) +
   geom_boxplot() +
-  labs(x="Shannon diversity", y = "Cell positione (oldest to youngest)")+
-  geom_point(size = 3)
+  geom_point(size = 3) +
+  labs(y = "Shannon diversity", x = "Cell position (youngest to oldest)") +
+  theme_classic() +
+  theme(axis.text.y = element_text(size = 14),
+        axis.title.y = element_text(size = 14, face = 'bold'),
+        axis.text.x = element_text(size = 14),
+        axis.title.x = element_text(size = 14, face = 'bold'),
+        legend.position = "none")
 
-ggsave("figures/S1.png", height=10, width=15)
+# Convert levels to numeric values for regression
+numeric_cell_ids <- as.numeric(factor(alpha_diversity_metadata$Cell_ID, levels = custom_Cell_ID_order))
+
+# Create the plot
+ggplot(alpha_diversity_metadata, aes(x = numeric_cell_ids, y = diversity_shannon, colour = Nest_id)) +
+  geom_point(size = 5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(y = "Shannon diversity", x = "Cell position (youngest to oldest)") +
+  theme_classic() +
+  theme(axis.text.y = element_text(size = 14),
+        axis.title.y = element_text(size = 14, face = 'bold'),
+        axis.text.x = element_text(size = 14),
+        axis.title.x = element_text(size = 14, face = 'bold')) +
+  facet_wrap(~ Nest_id) +
+  scale_x_continuous(breaks = 1:length(custom_Cell_ID_order), 
+                     labels = custom_Cell_ID_order)
+
+ggsave("figures/S1.png", height=8, width=12)
+
+
+model_interaction <- lm(diversity_shannon ~ as.numeric(Cell_ID) * Nest_id, data = alpha_diversity_metadata)
+summary(model_interaction)

@@ -49,6 +49,9 @@ my_palette
 adults2023 <- subset_samples(ps_rar, sample_type %in% c("Adults"))
 adults2023
 
+# Determine the number of reads per sample ####
+sort(sample_sums(adults2023))
+
 # Obtain top 20 genera ####
 ps_Genus3 <- tax_glom(adults2023, taxrank = "Genus", NArm = FALSE)
 
@@ -107,7 +110,7 @@ mean(
     strip.text = element_textbox_simple(
       padding = margin(5, 0, 5, 0),
       margin = margin(5, 5, 5, 5),
-      size = 14,
+      size = 16,
       face = "bold",
       halign = 0.5,
       fill = "white",
@@ -145,7 +148,7 @@ AE_plot <- cowplot::plot_grid(Figure3A,
                                rel_widths = c(1, 0.5))
 AE_plot
 # Save plot ####
-ggsave("figures/Figure3.png", height=10, width=20)
+ggsave("figures/Figure33.png", height=13, width=20)
 
 
 # Alpha diversity of pollen provisions as they are consumed ####

@@ -48,9 +48,6 @@ zero_abundance_samples <- sample_sums(ps_rar) == 0
 filtered_physeq <- subset_samples(ps_rar, !zero_abundance_samples)
 filtered_physeq
 
-# Determine the number of reads per sample ####
-sort(sample_sums(filtered_physeq))
-
 # Subset the data for samples_types ####
 food_through_time <- subset_samples(filtered_physeq, sample_type %in% c("Food") 
                                     & Nest_id %in% c("5", "13", "14", "27", "15")
@@ -59,6 +56,9 @@ food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "
 food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "13")] <- "2"
 food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "14")] <- "3"
 food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "27")] <- "4"
+
+# Determine the number of reads per sample ####
+sort(sample_sums(food_through_time))
 
 # Obtain top 20 genera ####
 ps_Genus2 <- tax_glom(food_through_time, taxrank = "Genus", NArm = FALSE)
@@ -105,7 +105,7 @@ df_Genus2$Cell_ID <- factor(df_Genus2$Cell_ID, levels = custom_Cell_ID_order)
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
   geom_bar(width = 1, stat = "identity") +
   scale_fill_manual(values = my_palette) +
-  facet_nested(~ Nest_id + Year + Cell_ID + sample_type, scales = "free", space = "free") +
+  facet_nested(~ Nest_id + Year + Cell_ID + sample_type + sampleid, scales = "free", space = "free") +
   labs(x = "sample_type", y = "Relative abundance") +
   theme( 
     axis.text.y = element_text(size=16, face =, 'bold'),
