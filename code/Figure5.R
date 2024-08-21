@@ -68,13 +68,14 @@ ps_Genus5_ra <- transform_sample_counts(ps_Genus5, function(x) 100 * x/sum(x))
 df_Genus5 <- psmelt(ps_Genus5_ra)
 df_Genus5 <- arrange(df_Genus5, sample_type)
 df_Genus5$Genus_20[is.na(df_Genus5$Genus_20)] <- c("Other")
-mean(
-  sample_sums(
-    prune_taxa(top20Genus5, ps_Genus5_ra)
-  )
+
+# View the result
+print(unique(df_Genus5$Genus_20))
+
+# % of reads that make up the top 20 genera ####
+mean(sample_sums(prune_taxa(top20Genus5, ps_Genus5_ra))
 )
 
-print(unique(df_Genus5$Genus_20))
 
 custom_order <- c("Mitochondria", 
                   "Chloroplast", 

@@ -52,6 +52,7 @@ food_with_brood_through_time <- subset_samples(filtered_physeq, sample_type %in%
 food_with_brood_through_time@sam_data$Nest_id[which(food_with_brood_through_time@sam_data$Nest_id == "5")] <- "1"
 food_with_brood_through_time@sam_data$Nest_id[which(food_with_brood_through_time@sam_data$Nest_id == "13")] <- "2"
 food_with_brood_through_time@sam_data$Nest_id[which(food_with_brood_through_time@sam_data$Nest_id == "14")] <- "3"
+food_with_brood_through_time@sam_data$Nest_id[which(food_with_brood_through_time@sam_data$Nest_id == "27")] <- "4"
 
 
 
@@ -83,9 +84,9 @@ boxplot <- alpha_diversity_metadata %>%
 numeric_cell_ids <- as.numeric(factor(alpha_diversity_metadata$Cell_ID, levels = custom_Cell_ID_order))
 
 # Create the plot
-ggplot(alpha_diversity_metadata, aes(x = numeric_cell_ids, y = diversity_shannon, colour = Nest_id)) +
-  geom_point(size = 5) +
-  geom_smooth(method = "lm", se = FALSE) +
+ggplot(alpha_diversity_metadata, aes(x = numeric_cell_ids, y = diversity_shannon)) +
+  geom_point(size = 5, color = "black") +  
+  geom_smooth(method = "lm", se = FALSE, color = "black") + 
   labs(y = "Shannon diversity", x = "Cell position (youngest to oldest)") +
   theme_classic() +
   theme(axis.text.y = element_text(size = 14),
@@ -95,6 +96,7 @@ ggplot(alpha_diversity_metadata, aes(x = numeric_cell_ids, y = diversity_shannon
   facet_wrap(~ Nest_id) +
   scale_x_continuous(breaks = 1:length(custom_Cell_ID_order), 
                      labels = custom_Cell_ID_order)
+
 
 ggsave("figures/S1.png", height=8, width=12)
 

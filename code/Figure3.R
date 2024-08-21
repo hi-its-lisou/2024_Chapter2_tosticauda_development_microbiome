@@ -81,11 +81,7 @@ df_Genus3$Genus_20[is.na(df_Genus3$Genus_20)] <- c("Other")
 print(unique(df_Genus3$Genus_20))
 
 # % of reads that make up the top 20 genera ####
-mean(
-  sample_sums(
-    prune_taxa(top20Genus3, ps_Genus3_ra)
-  )
-)
+mean(sample_sums(prune_taxa(top20Genus3, ps_Genus3_ra)))
 
 # Plot the relative abundance ####
 (Figure3A <- df_Genus3 %>%
