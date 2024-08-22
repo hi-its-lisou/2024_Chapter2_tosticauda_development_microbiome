@@ -4,6 +4,7 @@ library(tidyverse)
 library(qiime2R)
 library(decontam)
 library(microbiome)
+library(vegan)
 library(ggh4x)
 library(ggtext)
 library(ggplot2)
@@ -136,6 +137,16 @@ adults_colours <- c("#f87970", "#1E88E5", "#FFC107")
            legend.position = "top", 
            legend.title = element_blank()))
 
+# Adonis statistic to determine whether communities are significantly different
+#Refactor metadata
+adults_combined_subset <- as(sample_data(adults2023), "data.frame")
+#Run adonis with 9999 permutations
+uw_adonis <- adonis2(distance(adults2023, method="unifrac") ~ Env_exposure, 
+                     data = adults_combined_subset, 
+                     permutations = 9999)
+uw_adonis
+
+
 # Combine the plots ####
 AE_plot <- cowplot::plot_grid(Figure3A,
                                Figure3B,
@@ -146,18 +157,3 @@ AE_plot
 # Save plot ####
 ggsave("figures/Figure33.png", height=13, width=20)
 
-
-# Alpha diversity of pollen provisions as they are consumed ####
-#alpha_diversity <- alpha(adults2023, index = "Shannon")
-#metadata <- meta(adults2023)
-#metadata$name <- rownames(metadata)
-#alpha_diversity$name <- rownames(alpha_diversity)
-#alpha_diversity_metadata <- merge(alpha_diversity, metadata, by = "name")
-#alpha_diversity_metadata$sample_type <- factor(alpha_diversity_metadata$sample_type)
-#alpha_diversity_metadata$Env_exposure <- factor(alpha_diversity_metadata$Env_exposure)
-#
-## Box plot for alpha diversity
-#ggplot(alpha_diversity_metadata, aes(x = sample_type, y = diversity_shannon, fill = Env_exposure)) +
-#  geom_boxplot() +
-#  geom_point(position = position_jitterdodge(), size = 3)
-#
