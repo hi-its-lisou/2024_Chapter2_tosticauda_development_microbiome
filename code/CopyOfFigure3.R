@@ -16,9 +16,20 @@ ps <- qza_to_phyloseq(
   features = "input_files/merged_table.qza",
   taxonomy = "input_files/merged_taxonomy.qza",
   tree = "input_files/merged_sepp_tree.qza",
-  metadata = "input_files/combined_metadata_4.tsv")
+  metadata = "input_files/combined_metadata_5.tsv")
 ps@sam_data$sampleid = rownames(ps@sam_data)
 ps #1089 taxa and 208 samples
+
+
+# Access the taxonomy table from your phyloseq object
+tax_table_df <- as.data.frame(tax_table(ps))  # Replace 'ps' with your phyloseq object if necessary
+
+# Rename the genus for the specific feature ID
+tax_table_df["c624f2e4228eea7296b2a77e2d4b7e50", "Genus"] <- "Acinetobacter*"
+tax_table_df["80626c0d45293428d118ce1f05a1ab18", "Genus"] <- "Tyzzerella*"
+# Update the taxonomy table in the phyloseq object with the modified table
+tax_table(ps) <- as.matrix(tax_table_df)
+
 
 # Rarefy ####
 ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337)
@@ -29,27 +40,27 @@ zero_abundance_samples <- sample_sums(ps_rar) == 0
 ps_rar <- subset_samples(ps_rar, !zero_abundance_samples)
 ps_rar
 
+# Filter out samples with low abundance reads ####
+low_abundance_samples <- sample_sums(ps_rar) <= 100
+filtered_physeq <- subset_samples(ps_rar, !low_abundance_samples)
+filtered_physeq
+
 # Remove contaminants, chloroplasts, and mitochondria ####
 contam <- read_delim("input_files/chloro_mito_decontam_asvs.txt", 
                      delim = "\n", 
                      col_names = "asv")
 
 chloro_mito_decontam_asvs <- contam$asv
-all_asvs <- taxa_names(ps_rar)
+all_asvs <- taxa_names(filtered_physeq)
 asvs_to_keep <- all_asvs[!(all_asvs %in% chloro_mito_decontam_asvs)]
-ps_rar <- prune_taxa(asvs_to_keep, ps_rar)
-ps_rar
+filtered_physeq <- prune_taxa(asvs_to_keep, filtered_physeq)
+filtered_physeq
 
 # Load custom colour palette ####
 colours_df <- read_csv("input_files/colour_list.csv")
 my_palette <- colours_df$colours
 names(my_palette) <- colours_df$genera
 my_palette
-
-# Filter out samples with low abundance reads ####
-low_abundance_samples <- sample_sums(ps_rar) <= 100
-filtered_physeq <- subset_samples(ps_rar, !low_abundance_samples)
-filtered_physeq
 
 # Subset the data for adults in the acquisition experiment ####
 adults2023 <- subset_samples(filtered_physeq, sample_type %in% c("Adults"))
@@ -89,13 +100,16 @@ print(unique(df_Genus3$Genus_20))
 # % of reads that make up the top 20 genera ####
 mean(sample_sums(prune_taxa(top20Genus3, ps_Genus3_ra)))
 
+df_Genus3$Genus <- factor(df_Genus3$Genus, 
+                         levels = c("Acinetobacter*", "Tyzzerella*", "Acinetobacter", "Tyzzerella"))
+
 # Plot the relative abundance ####
 (Figure3A <- df_Genus3 %>%
   mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
   geom_bar(width = 1, stat = "identity") +
   scale_fill_manual(values = my_palette) +
-  facet_nested(~ sample_type + Env_exposure + sampleid, 
+  facet_nested(~ sample_type + Env_exposure + Gender + sampleid.1, 
                scales = "free", space = "free") +
   labs(x = "sample_type", y = "Relative abundance") +
   theme( 
@@ -112,7 +126,7 @@ mean(sample_sums(prune_taxa(top20Genus3, ps_Genus3_ra)))
     strip.text = element_textbox_simple(
       padding = margin(5, 0, 5, 0),
       margin = margin(5, 5, 5, 5),
-      size = 16,
+      size = 10,
       face = "bold",
       halign = 0.5,
       fill = "white",
@@ -161,4 +175,17 @@ AE_plot <- cowplot::plot_grid(Figure3A,
 AE_plot
 # Save plot ####
 ggsave("figures/OctFigure3.png", height=13, width=20)
+
+
+
+source("Plot_specific_ASV_Abundance_Function.R")
+
+# Modify the function call
+plot.specific.ASV(adults2023, "c624f2e4228eea7296b2a77e2d4b7e50", facet_grid = "sample_type + Env_exposure")
+ggsave("figures/suppAcine.png", height=10, width=15)
+
+plot.specific.ASV(adults2023, "80626c0d45293428d118ce1f05a1ab18", facet_grid = "sample_type + Env_exposure")
+ggsave("figures/suppTyzz.png", height=10, width=15)
+
+plot.specific.ASV(adults2023, "4a32f1635f88214c4874eec85df56595", facet_grid = "sample_type + Env_exposure")
 

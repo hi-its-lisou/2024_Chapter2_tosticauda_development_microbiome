@@ -113,7 +113,7 @@ Phycicoccus,#896092
 Mobilicoccus,#8B5D94
 Brachybacterium,#8D5B96
 Gardnerella,#8F5899
-Brevibacterium,#D86DCD
+Brevibacterium,#3FFF3F
 Leucobacter,#93539D
 Amnibacterium,#95519F
 Marisediminicola,#974EA2
@@ -166,7 +166,8 @@ Romboutsia,#FF9408
 Intestinibacter,#FF9709
 Clostridioides,#FF9A0B
 Defluviitaleaceae_UCG-011,#FF9E0C
-Tyzzerella,#FFA10D
+Tyzzerella*,#FFA10D
+Tyzzerella,#DEEB8D
 Ruminococcus,#FFA40E
 Facklamia,#FFA710
 Atopostipes,#FFAB11
@@ -191,7 +192,7 @@ Novibacillus,#FFE629
 Sporosarcina,#FFE92A
 Oceanobacillus,#FFEC2B
 Aneurinibacillus,#FFEF2C
-Staphylococcus,#FFF32E
+Staphylococcus,#00CC99
 Rummeliibacillus,#FFF62F
 Lysinibacillus,#FFF930
 Solibacillus,#FFFC32
@@ -206,7 +207,7 @@ W5053,#EEDF30
 Anaerococcus,#EBDA30
 Tissierella,#E9D630
 Tepidimicrobium,#E7D230
-Peptoniphilus,#E5CD2F
+Peptoniphilus,#F5EBB1
 Fenollaria,#E2C92F
 Ezakiella,#E0C52F
 Finegoldia,#DEC02E
@@ -291,7 +292,8 @@ Lysobacter,#D589B1
 Arenimonas,#D28AB0
 Nevskia,#D08AAF
 Rickettsiella,#CD8BAE
-Acinetobacter,#FA26A0
+Acinetobacter*,#FA26A0
+Acinetobacter,#CB58FE
 Pseudomonas,#C98CAC
 Halomonas,#C68DAB
 Zymobacter,#C48DAA

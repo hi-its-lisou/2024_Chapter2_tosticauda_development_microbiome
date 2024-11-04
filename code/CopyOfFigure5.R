@@ -31,17 +31,17 @@ my_palette <- colours_df$colours
 names(my_palette) <- colours_df$genera
 my_palette
 
-# Identify zero abundance samples
-zero_abundance_samples <- sample_sums(ps) == 0
-ps <- subset_samples(ps, !zero_abundance_samples)
-ps
+# Filter out samples with low abundance reads ####
+low_abundance_samples <- sample_sums(ps) <= 100
+filtered_physeq <- subset_samples(ps, !low_abundance_samples)
+filtered_physeq
 
 # Remove primary isolates
-ps <- subset_samples(ps, !sample_type %in% c("Primary_isolate")
+filtered_physeq <- subset_samples(filtered_physeq, !sample_type %in% c("Primary_isolate")
                      & !AB_treatment %in% c("control", "antibiotic"))
 
 #Collapse to Genus level and pull our relative abundance of top 20 common genuses.
-ps_Genus5 <- tax_glom(ps, taxrank = "Genus", NArm = FALSE)
+ps_Genus5 <- tax_glom(filtered_physeq, taxrank = "Genus", NArm = FALSE)
 
 if ("Family" %in% colnames(tax_table(ps_Genus5))) {
   
@@ -76,28 +76,28 @@ print(unique(df_Genus5$Genus_20))
 mean(sample_sums(prune_taxa(top20Genus5, ps_Genus5_ra))
 )
 
-
-custom_order <- c("Mitochondria", 
-                  "Chloroplast", 
-                  "Acinetobacter",
-                  "Pseudomonas", 
-                  "Tyzzerella",
-                  "Lactobacillus",
-                  "Sodalis", 
-                  "Sphingobium", 
-                  "Bacillus",
-                  "Enterobacteriaceae_unclassified", 
-                  "Erwiniaceae_unclassified", 
-                  "Escherichia-Shigella",  
-                  "Commensalibacter",
-                  "Gilliamella", 
-                  "Snodgrassella", 
-                  "Bifidobacterium",
-                  "Bartonella", 
-                  "Brevibacterium",
-                  "NA_unclassified", 
-                  "Other")
-                  
+custom_order <- c("Acinetobacter"                   , 
+                  "Brevibacterium"                 ,
+                  "Chloroplast"                     , 
+                  "Pseudomonas"                    ,
+                  "Other"                           , 
+                  "Mitochondria"                   ,
+                  "Tyzzerella"                      , 
+                  "Lactobacillus"                  ,
+                  "Sodalis"                         , 
+                  "Sphingobium"                    ,
+                   "NA_unclassified"                , 
+                   "Bacillus"                       ,
+                   "Enterobacteriaceae_unclassified", 
+                   "Erwiniaceae_unclassified"       ,
+                   "Escherichia-Shigella"           , 
+                   "Commensalibacter"               ,
+                   "Gilliamella"                    , 
+                   "Snodgrassella"                  ,
+                   "Bifidobacterium"                , 
+                   "Bartonella")
+                
+                   
 df_Genus5$Genus_20 <- factor(df_Genus5$Genus_20, levels = custom_order)
 
 df_Genus5 <- df_Genus5 %>%
@@ -209,5 +209,5 @@ df_Genus5$sample_type2 <- factor(df_Genus5$sample_type2, levels=order)
                                        rel_heights = c(1.3, 0.2)
                                        ))
 
-ggsave("figures/Figure5.png", height=10, width=15)
+ggsave("figures/OctFigure5.png", height=10, width=15)
 

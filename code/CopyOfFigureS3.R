@@ -15,7 +15,7 @@ ps <- qza_to_phyloseq(
   features = "input_files/merged_table.qza",
   taxonomy = "input_files/merged_taxonomy.qza",
   tree = "input_files/merged_sepp_tree.qza",
-  metadata = "input_files/combined_metadata_4.tsv")
+  metadata = "input_files/combined_metadata_5.tsv")
 ps@sam_data$sampleid = rownames(ps@sam_data)
 ps
 
@@ -54,7 +54,7 @@ ASVPalette[Acinetobacter_to_change] <- new_color_Acinetobacter
     ggplot(aes(x = sample_type, y = Abundance, fill = asvs)) +
     geom_bar(stat = "identity") +
     scale_fill_manual(values = ASVPalette) +
-    facet_nested(~ sample_type + Env_exposure + Sample, scales = "free", space = "free") +
+    facet_nested(~ sample_type + Env_exposure + Gender + sampleid.1, scales = "free", space = "free") +
     labs(x = "sample_type", y = "Relative abundance") +
     theme( 
       axis.text.y = element_text(size=16, face = 'bold'),
@@ -70,7 +70,7 @@ ASVPalette[Acinetobacter_to_change] <- new_color_Acinetobacter
       strip.text = element_textbox_simple(
         padding = margin(5, 0, 5, 0),
         margin = margin(5, 5, 5, 5),
-        size = 16,
+        size = 10,
         face = "bold",
         halign = 0.5,
         fill = "white",
@@ -80,4 +80,4 @@ ASVPalette[Acinetobacter_to_change] <- new_color_Acinetobacter
       panel.background = element_blank()))
 
 # Save plot
-ggsave("figures/FigureS2.png", height=10, width=20)
+ggsave("figures/OctFigureS2.png", height=10, width=20)
