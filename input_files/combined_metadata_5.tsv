@@ -1,4 +1,4 @@
-sampleid	sampleid	sample_type	Nest_id	Larvaee_size	Cell_ID	Negative_control	Description_of_sample	Env_exposure	AB_treatment	Year	Sample	AVG_CTscore	logDNA	Gender											
+sampleid	sampleid	sample_type	Nest_id	Larvae_size	Cell_ID	Negative_control	Description_of_sample	Env_exposure	AB_treatment	Year	Sample	AVG_CTscore	logDNA	Gender											
 EW-1	1	Negative_control	NA	NA	NA	FALSE	Sample_control	NA	NA	2022		NA	NA	NA											
 EW-2	2	Nest_contents	4	NA	A	FALSE	Wall	NA	NA	2022		NA	NA	NA											
 EW-5	5	Prepupae	4	7	D	FALSE	Larvae	NA	NA	2022		NA	NA	NA											

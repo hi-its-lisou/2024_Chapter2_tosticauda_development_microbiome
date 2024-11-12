@@ -30,6 +30,11 @@ tax_table_df["80626c0d45293428d118ce1f05a1ab18", "Genus"] <- "Tyzzerella*"
 # Update the taxonomy table in the phyloseq object with the modified table
 tax_table(ps) <- as.matrix(tax_table_df)
 
+# Load custom colour palette ####
+colours_df <- read_csv("input_files/colour_list.csv")
+my_palette <- colours_df$colours
+names(my_palette) <- colours_df$genera
+my_palette
 
 # Rarefy ####
 ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337)
@@ -41,8 +46,8 @@ ps_rar <- subset_samples(ps_rar, !zero_abundance_samples)
 ps_rar
 
 # Filter out samples with low abundance reads ####
-low_abundance_samples <- sample_sums(ps_rar) <= 100
-filtered_physeq <- subset_samples(ps_rar, !low_abundance_samples)
+zero_abundance_samples <- sample_sums(ps_rar) == 0
+filtered_physeq <- subset_samples(ps_rar, !zero_abundance_samples)
 filtered_physeq
 
 # Remove contaminants, chloroplasts, and mitochondria ####
@@ -56,11 +61,7 @@ asvs_to_keep <- all_asvs[!(all_asvs %in% chloro_mito_decontam_asvs)]
 filtered_physeq <- prune_taxa(asvs_to_keep, filtered_physeq)
 filtered_physeq
 
-# Load custom colour palette ####
-colours_df <- read_csv("input_files/colour_list.csv")
-my_palette <- colours_df$colours
-names(my_palette) <- colours_df$genera
-my_palette
+
 
 # Subset the data for adults in the acquisition experiment ####
 adults2023 <- subset_samples(filtered_physeq, sample_type %in% c("Adults"))
