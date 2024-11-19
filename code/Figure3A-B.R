@@ -1,4 +1,4 @@
-# Load the required libraries ####
+### Load the required libraries ###
 library(phyloseq)
 library(tidyverse)
 library(qiime2R)
@@ -11,7 +11,8 @@ library(ggplot2)
 library(RColorBrewer)
 library(dplyr)
 
-# Load phyloseq object ####
+### Preparing the data ###
+# Load phyloseq object
 ps <- qza_to_phyloseq(
   features = "input_files/merged_table.qza",
   taxonomy = "input_files/merged_taxonomy.qza",
@@ -20,35 +21,32 @@ ps <- qza_to_phyloseq(
 ps@sam_data$sampleid = rownames(ps@sam_data)
 ps #1089 taxa and 208 samples
 
+# Filter out samples with low abundance reads ####
+high_read_samples <- sample_sums(ps) >= 300 
+ps <- subset_samples(ps, high_read_samples)
 
-# Access the taxonomy table from your phyloseq object
-tax_table_df <- as.data.frame(tax_table(ps))  # Replace 'ps' with your phyloseq object if necessary
-
-# Rename the genus for the specific feature ID
+# Distinguish the two most prevalent ASVs
+tax_table_df <- as.data.frame(tax_table(ps))
+# Rename the genus using *
 tax_table_df["c624f2e4228eea7296b2a77e2d4b7e50", "Genus"] <- "Acinetobacter*"
 tax_table_df["80626c0d45293428d118ce1f05a1ab18", "Genus"] <- "Tyzzerella*"
-# Update the taxonomy table in the phyloseq object with the modified table
+# Update the taxonomy
 tax_table(ps) <- as.matrix(tax_table_df)
 
-# Load custom colour palette ####
+# Load custom colour palette for each taxa
 colours_df <- read_csv("input_files/colour_list.csv")
 my_palette <- colours_df$colours
 names(my_palette) <- colours_df$genera
 my_palette
 
-# Rarefy ####
-ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337)
+# Rarefy the data
+ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337) #1500 as determined by QIIME output and plateau of curves
 ps_rar 
 
-# Filter out 0 abundance reads ####
+# Filter out 0 abundance reads caused by rarefying
 zero_abundance_samples <- sample_sums(ps_rar) == 0
 ps_rar <- subset_samples(ps_rar, !zero_abundance_samples)
 ps_rar
-
-# Filter out samples with low abundance reads ####
-zero_abundance_samples <- sample_sums(ps_rar) == 0
-filtered_physeq <- subset_samples(ps_rar, !zero_abundance_samples)
-filtered_physeq
 
 # Remove contaminants, chloroplasts, and mitochondria ####
 contam <- read_delim("input_files/chloro_mito_decontam_asvs.txt", 
@@ -56,12 +54,10 @@ contam <- read_delim("input_files/chloro_mito_decontam_asvs.txt",
                      col_names = "asv")
 
 chloro_mito_decontam_asvs <- contam$asv
-all_asvs <- taxa_names(filtered_physeq)
+all_asvs <- taxa_names(ps_rar)
 asvs_to_keep <- all_asvs[!(all_asvs %in% chloro_mito_decontam_asvs)]
-filtered_physeq <- prune_taxa(asvs_to_keep, filtered_physeq)
+filtered_physeq <- prune_taxa(asvs_to_keep, ps_rar)
 filtered_physeq
-
-
 
 # Subset the data for adults in the acquisition experiment ####
 adults2023 <- subset_samples(filtered_physeq, sample_type %in% c("Adults"))
@@ -167,6 +163,19 @@ uw_adonis <- adonis2(distance(adults2023, method="unifrac") ~ Env_exposure,
 uw_adonis
 
 
+#Check for homogenaeity multivariate dispersion with betadisper
+homogenaeity <- adults_combined_subset[["Env_exposure"]]
+uw_disp <- betadisper(distance(adults2023, method="unifrac"), group = homogenaeity)
+anova(uw_disp)
+
+plot(uw_disp)
+boxplot(uw_disp)
+#Tukey HSD
+uw_disp_HSD <- TukeyHSD(uw_disp)
+plot(uw_disp_HSD)
+
+
+
 # Combine the plots ####
 AE_plot <- cowplot::plot_grid(Figure3A,
                                Figure3B,
@@ -176,17 +185,3 @@ AE_plot <- cowplot::plot_grid(Figure3A,
 AE_plot
 # Save plot ####
 ggsave("figures/OctFigure3.png", height=13, width=20)
-
-
-
-source("Plot_specific_ASV_Abundance_Function.R")
-
-# Modify the function call
-plot.specific.ASV(adults2023, "c624f2e4228eea7296b2a77e2d4b7e50", facet_grid = "sample_type + Env_exposure")
-ggsave("figures/suppAcine.png", height=10, width=15)
-
-plot.specific.ASV(adults2023, "80626c0d45293428d118ce1f05a1ab18", facet_grid = "sample_type + Env_exposure")
-ggsave("figures/suppTyzz.png", height=10, width=15)
-
-plot.specific.ASV(adults2023, "4a32f1635f88214c4874eec85df56595", facet_grid = "sample_type + Env_exposure")
-

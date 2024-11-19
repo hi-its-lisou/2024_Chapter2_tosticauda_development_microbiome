@@ -1,4 +1,4 @@
-# Load the required libraries ####
+### Load the required libraries ####
 library(phyloseq)
 library(tidyverse)
 library(qiime2R)
@@ -14,58 +14,82 @@ library(ggforce)
 library(vegan)
 library(patchwork)
 
-# Load phyloseq object ####
+### Preparing the data ###
+# Load phyloseq object
 ps <- qza_to_phyloseq(
   features = "input_files/merged_table.qza",
   taxonomy = "input_files/merged_taxonomy.qza",
   tree = "input_files/merged_sepp_tree.qza",
-  metadata = "input_files/combined_metadata_4.tsv")
+  metadata = "input_files/combined_metadata_5.tsv")
 ps@sam_data$sampleid = rownames(ps@sam_data)
-ps
+ps #1089 taxa and 208 samples
 
-# Load custom colour palette ####
+# Filter out samples with low abundance reads ####
+high_read_samples <- sample_sums(ps) >= 300 
+ps <- subset_samples(ps, high_read_samples)
+
+# Distinguish the two most prevalent ASVs
+tax_table_df <- as.data.frame(tax_table(ps))
+# Rename the genus using *
+tax_table_df["c624f2e4228eea7296b2a77e2d4b7e50", "Genus"] <- "Acinetobacter*"
+tax_table_df["80626c0d45293428d118ce1f05a1ab18", "Genus"] <- "Tyzzerella*"
+# Update the taxonomy
+tax_table(ps) <- as.matrix(tax_table_df)
+
+# Load custom colour palette for each taxa
 colours_df <- read_csv("input_files/colour_list.csv")
 my_palette <- colours_df$colours
 names(my_palette) <- colours_df$genera
 my_palette
 
-# Rarefy ####
-ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337)
+# Rarefy the data
+ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337) #1500 as determined by QIIME output and plateau of curves
+ps_rar
+
+# Filter out 0 abundance reads caused by rarefying
+zero_abundance_samples <- sample_sums(ps_rar) == 0
+ps_rar <- subset_samples(ps_rar, !zero_abundance_samples)
 ps_rar
 
 # Remove contaminants, chloroplasts, and mitochondria ####
 contam <- read_delim("input_files/chloro_mito_decontam_asvs.txt", 
                      delim = "\n", 
                      col_names = "asv")
+
 chloro_mito_decontam_asvs <- contam$asv
 all_asvs <- taxa_names(ps_rar)
 asvs_to_keep <- all_asvs[!(all_asvs %in% chloro_mito_decontam_asvs)]
-ps_rar <- prune_taxa(asvs_to_keep, ps_rar)
-ps_rar
-
-# Filter out samples with low abundance reads ####
-low_abundance_samples <- sample_sums(ps_rar) <= 100
-filtered_physeq <- subset_samples(ps_rar, !low_abundance_samples)
+filtered_physeq <- prune_taxa(asvs_to_keep, ps_rar)
 filtered_physeq
 
-sort(sample_sums(filtered_physeq))
+### Subset the data for samples_types ###
+#Honey bees
+HB_subset <- subset_samples(filtered_physeq, sample_type %in% c("Honey_bee"))
 
-# Subset the data for samples_types 
-prepupal_subset <- subset_samples(filtered_physeq, 
-                                  sample_type %in% c("Prepupae") & 
-                                    is.na(AB_treatment))
-adults_subset <- subset_samples(filtered_physeq, 
-                                sample_type == "Adults" & 
-                                  Env_exposure == "Free-flying")
-larva_subset <- subset_samples(filtered_physeq, sample_type %in% c("Larvae")
-                               & Year %in% c("2022"))
+#Prepupae
+prepupal_subset <- subset_samples(filtered_physeq, sample_type %in% c("Prepupae") & is.na(AB_treatment) & !Nest_id %in% c("5", "13", "14", "27"))
+
+#Larvae
+larva_subset <- subset_samples(filtered_physeq, sample_type %in% c("Larvae") & Year %in% c("2022"))
+mature_larvae <- subset_samples(filtered_physeq, sample_type %in% c("Prepupae") & Nest_id %in% c("5", "13", "14", "27"))
+mature_larvae@sam_data$sample_type[which(mature_larvae@sam_data$sample_type == "Prepupae")] <- "Mature larvae"
+
+larvae_all <- merge_phyloseq (mature_larvae, larva_subset)
+larvae_all@sam_data$sample_type[which(larvae_all@sam_data$sample_type == "Mature larvae")] <- "Larvae"
+
+#Natural adults
+adults_subset <- subset_samples(filtered_physeq, sample_type == "Adults" & Env_exposure == "Free-flying")
+
+#Frass
 frass_subset <- subset_samples(filtered_physeq, Description_of_sample %in% c("CocoonFrass", "Frass", "PinkCocoonFrass"))
 frass_subset@sam_data$sample_type[which(frass_subset@sam_data$sample_type == "Nest_contents")] <- "Frass contents"
-HB_subset <- subset_samples(filtered_physeq, sample_type %in% c("Honey_bee"))
+
+
+
 
 ### Analysis development stages ###
 # Compare the beta diversity of the different development stages ####
-development <- merge_phyloseq(prepupal_subset, adults_subset, larva_subset)
+development <- merge_phyloseq(prepupal_subset, adults_subset, larvae_all)
 unweighted_unifrac <- ordinate(development, method = "PCoA", distance = "unifrac", weighted=F)
 
 colours <- c("#f87970", "green", "#4B0092")
@@ -78,9 +102,9 @@ colours <- c("#f87970", "green", "#4B0092")
     stat_ellipse(geom = "polygon", type="norm", alpha=0) +
     theme_minimal() +
     scale_color_manual(values = colours) +
-    theme (axis.text.y = element_text(size=14, face = 'bold'),
+    theme (axis.text.y = element_text(size=18, face = 'bold'),
            axis.title.y = element_text(size=14, face = 'bold'),
-           axis.text.x = element_text(size=14, face = 'bold'),
+           axis.text.x = element_text(size=18, face = 'bold'),
            axis.title.x = element_text(size=14, face = 'bold'),
            legend.text = element_text(size = 14),
            legend.position = "top", 
@@ -95,11 +119,23 @@ uw_adonis <- adonis2(distance(development, method="unifrac") ~ sample_type,
                      permutations = 9999)
 uw_adonis
 
-# Combine the subsetted data ####
-combined_subset <- merge_phyloseq(prepupal_subset, adults_subset, larva_subset, frass_subset)
 
-# Determine the number of reads per sample ####
-sort(sample_sums(combined_subset))
+#Check for homogenaeity multivariate dispersion with betadisper
+homogenaeity <- md_combined_subset[["sample_type"]]
+uw_disp <- betadisper(distance(development, method="unifrac"), group = homogenaeity)
+anova(uw_disp)
+
+plot(uw_disp)
+boxplot(uw_disp)
+#Tukey HSD
+uw_disp_HSD <- TukeyHSD(uw_disp)
+plot(uw_disp_HSD)
+
+
+
+
+# Combine the subsetted data ####
+combined_subset <- merge_phyloseq(prepupal_subset, adults_subset, larva_subset, mature_larvae, frass_subset)
 
 # Obtain top 20 genera ####
 ps_Genus1 <- tax_glom(combined_subset, taxrank = "Genus", NArm = FALSE)
@@ -134,7 +170,7 @@ mean(sample_sums(prune_taxa(top20Genus1, ps_Genus1_ra)))
 
 # Plot the relative abundance ####
 # Custom order for sample types
-custom_order <- c("Adults", "Larvae", "Prepupae", "Frass contents")
+custom_order <- c("Adults", "Larvae", "Mature_Larvae", "Prepupae", "Frass contents")
 df_Genus1$sample_type <- factor(df_Genus1$sample_type, levels = custom_order)
 
 # Custom order for cell ID from youngest to oldest
@@ -183,4 +219,7 @@ Figure1
 
 #Save plot
 ggsave("figures/OctFigure1.png", height=10, width=18)
+
+
+
 
