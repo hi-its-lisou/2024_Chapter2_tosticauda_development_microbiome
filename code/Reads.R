@@ -15,23 +15,53 @@ ps_raw <- qza_to_phyloseq(
 ps_raw@sam_data$sampleid = rownames(ps_raw@sam_data)
 ps_raw
 
+
+### Use only the samples from manuscript by bringing into the same filtered phyloseqs
+# Honey bees
+HB_subset <- subset_samples(ps_raw, sample_type %in% c("Honey_bee"))
+
+# Prepupae
+prepupal_subset <- subset_samples(ps_raw, sample_type %in% c("Prepupae") & is.na(AB_treatment) & !Nest_id %in% c("5", "13", "14", "27"))
+
+# Larvae
+larva_subset <- subset_samples(ps_raw, sample_type %in% c("Larvae") & Year %in% c("2022"))
+
+# Adults
+adults <- subset_samples(ps_raw, sample_type %in% c("Adults"))
+adults
+# Frass
+frass_subset <- subset_samples(ps_raw, Description_of_sample %in% c("CocoonFrass", "Frass", "PinkCocoonFrass"))
+frass_subset@sam_data$sample_type[which(frass_subset@sam_data$sample_type == "Nest_contents")] <- "Frass contents"
+
+# Pollen provisions
+food_through_time <- subset_samples(ps_raw, sample_type %in% c("Food") 
+                                    & Nest_id %in% c("5", "13", "14", "27", "15")
+                                    & Cell_ID %in% c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A"))
+food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "5")] <- "1"
+food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "13")] <- "2"
+food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "14")] <- "3"
+food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "27")] <- "4"
+
+# Negative controls
+negative_controls <- (subset_samples(ps_raw, sample_type %in% c("Negative_control")))
+
+# Merge all together
+ps_raw <- merge_phyloseq(food_through_time, larva_subset, prepupal_subset, adults, HB_subset, frass_subset, negative_controls)
+
+
 # Total reads in the raw (unfiltered) dataset
 total_reads_raw <- sum(sample_sums(ps_raw))
 sort(sample_sums(ps_raw))
 
-# Filter out samples with low abundance reads ####
-high_read_samples <- sample_sums(ps_raw) >= 300 
-ps <- subset_samples(ps_raw, high_read_samples)
-ps
 
-# Remove contaminants, chloroplasts, and mitochondria ####
+### Remove contaminants, chloroplasts, and mitochondria ####
 contam <- read_delim("input_files/chloro_mito_decontam_asvs.txt", 
                      delim = "\n", 
                      col_names = "asv")
 chloro_mito_decontam_asvs <- contam$asv
-all_asvs <- taxa_names(ps)
+all_asvs <- taxa_names(ps_raw)
 asvs_to_keep <- all_asvs[!(all_asvs %in% chloro_mito_decontam_asvs)]
-ps_filtered <- prune_taxa(asvs_to_keep, ps)
+ps_filtered <- prune_taxa(asvs_to_keep, ps_raw)
 ps_filtered
 
 sort(sample_sums(ps_filtered))
@@ -54,7 +84,7 @@ cat("Total reads remaining after filtering:", total_reads_filtered, "\n")
 cat("Mean reads per sample (raw):", round(mean_reads_raw), "\n")
 cat("Mean reads per sample (filtered):", round(mean_reads_filtered), "\n")
 
-
+### Calculate the proportion of reads that were off-target ###
 # Extract the OTU table and taxonomy table from the phyloseq object
 otu_table_df <- as.data.frame(as(otu_table(ps_raw), "matrix"))
 tax_table_df <- as.data.frame(as(tax_table(ps_raw), "matrix"))
@@ -79,7 +109,7 @@ otu_columns <- select(chloroplast_mitochondria_taxa, where(is.numeric))
 chloroplast_mitochondria_reads <- rowSums(otu_columns)
 
 # Calculate total reads in the entire dataset
-total_reads <- sum(rowSums(otu_table(ps)))
+total_reads <- sum(rowSums(otu_table(ps_raw)))
 
 # Calculate the proportion of reads that are chloroplasts or mitochondria
 proportion_chloroplast_mitochondria <- sum(chloroplast_mitochondria_reads) / total_reads
@@ -89,31 +119,4 @@ cat("Total reads:", total_reads, "\n")
 cat("Chloroplast/Mitochondria reads:", sum(chloroplast_mitochondria_reads), "\n")
 cat("Proportion of reads that are chloroplast or mitochondria:", round(proportion_chloroplast_mitochondria * 100, 2), "%\n")
 
-
-
-
-
-# Extract the OTU table from the phyloseq object as a matrix
-otu_table_matrix <- as(otu_table(filtered_physeq), "matrix") 
-
-if (taxa_are_rows(otu_table(filtered_physeq))) {
-  otu_table_matrix <- t(otu_table_matrix)
-}
-otu_table_df <- as.data.frame(otu_table_matrix)
-otu_table_df <- tibble::rownames_to_column(otu_table_df, var = "SampleID")
-write.csv(otu_table_df, file = "otu_table_filtered.csv", row.names = FALSE)
-
-
-
-# Extract the taxonomy table from the phyloseq object
-taxonomy_table_matrix <- as(tax_table(ps), "matrix") 
-
-# Convert to a data frame for better formatting
-taxonomy_table_df <- as.data.frame(taxonomy_table_matrix)
-
-# Add ASV/OTU names as a column for identification
-taxonomy_table_df <- tibble::rownames_to_column(taxonomy_table_df, var = "ASV")
-
-# Save the taxonomy table to a CSV file
-write.csv(taxonomy_table_df, file = "taxonomy_table.csv", row.names = FALSE)
 

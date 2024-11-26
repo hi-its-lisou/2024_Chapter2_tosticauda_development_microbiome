@@ -25,10 +25,6 @@ ps <- qza_to_phyloseq(
 ps@sam_data$sampleid = rownames(ps@sam_data)
 ps #1089 taxa and 208 samples
 
-# Filter out samples with low abundance reads ####
-high_read_samples <- sample_sums(ps) >= 300 
-ps <- subset_samples(ps, high_read_samples)
-
 # Distinguish the two most prevalent ASVs
 tax_table_df <- as.data.frame(tax_table(ps))
 # Rename the genus using *
@@ -43,26 +39,25 @@ my_palette <- colours_df$colours
 names(my_palette) <- colours_df$genera
 my_palette
 
-# Rarefy the data
-ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337) #1500 as determined by QIIME output and plateau of curves
-ps_rar 
-
-# Filter out 0 abundance reads caused by rarefying
-zero_abundance_samples <- sample_sums(ps_rar) == 0
-ps_rar <- subset_samples(ps_rar, !zero_abundance_samples)
-ps_rar
-
 # Remove contaminants, chloroplasts, and mitochondria ####
 contam <- read_delim("input_files/chloro_mito_decontam_asvs.txt", 
                      delim = "\n", 
                      col_names = "asv")
 
 chloro_mito_decontam_asvs <- contam$asv
-all_asvs <- taxa_names(ps_rar)
+all_asvs <- taxa_names(ps)
 asvs_to_keep <- all_asvs[!(all_asvs %in% chloro_mito_decontam_asvs)]
-filtered_physeq <- prune_taxa(asvs_to_keep, ps_rar)
+filtered_physeq <- prune_taxa(asvs_to_keep, ps)
 filtered_physeq
 
+sort(sample_sums(filtered_physeq))
+
+
+# Rarefy the data
+ps_rar <- rarefy_even_depth(filtered_physeq, sample.size = 500, rngseed = 1337) #1500 as determined by QIIME output and plateau of curves
+ps_rar 
+
+sort(sample_sums(ps_rar))
 ### Subset the data for samples_types ###
 food_through_time <- subset_samples(filtered_physeq, sample_type %in% c("Food") 
                                     & Nest_id %in% c("5", "13", "14", "27", "15")
@@ -102,6 +97,7 @@ print(unique(df_Genus2$Genus_20))
 
 # % of reads that make up the top 20 genera
 mean(sample_sums(prune_taxa(top20Genus2, ps_Genus2_ra)))
+
 
 # Plot the relative abundance ####
 # Custom order for Cell_ID from youngest to oldest

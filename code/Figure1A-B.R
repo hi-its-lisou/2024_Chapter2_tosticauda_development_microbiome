@@ -2,6 +2,7 @@
 library(phyloseq)
 library(tidyverse)
 library(qiime2R)
+library(decontam)
 library(microbiome)
 library(ggh4x)
 library(ggtext)
@@ -12,7 +13,7 @@ library(extrafont)
 library(forcats)
 library(ggforce)
 library(vegan)
-library(patchwork)
+library(xfun)
 
 ### Preparing the data ###
 # Load phyloseq object
@@ -23,10 +24,6 @@ ps <- qza_to_phyloseq(
   metadata = "input_files/combined_metadata_5.tsv")
 ps@sam_data$sampleid = rownames(ps@sam_data)
 ps #1089 taxa and 208 samples
-
-# Filter out samples with low abundance reads ####
-high_read_samples <- sample_sums(ps) >= 300 
-ps <- subset_samples(ps, high_read_samples)
 
 # Distinguish the two most prevalent ASVs
 tax_table_df <- as.data.frame(tax_table(ps))
@@ -42,46 +39,46 @@ my_palette <- colours_df$colours
 names(my_palette) <- colours_df$genera
 my_palette
 
-# Rarefy the data
-ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337) #1500 as determined by QIIME output and plateau of curves
-ps_rar
-
-# Filter out 0 abundance reads caused by rarefying
-zero_abundance_samples <- sample_sums(ps_rar) == 0
-ps_rar <- subset_samples(ps_rar, !zero_abundance_samples)
-ps_rar
-
 # Remove contaminants, chloroplasts, and mitochondria ####
 contam <- read_delim("input_files/chloro_mito_decontam_asvs.txt", 
                      delim = "\n", 
                      col_names = "asv")
 
 chloro_mito_decontam_asvs <- contam$asv
-all_asvs <- taxa_names(ps_rar)
+all_asvs <- taxa_names(ps)
 asvs_to_keep <- all_asvs[!(all_asvs %in% chloro_mito_decontam_asvs)]
-filtered_physeq <- prune_taxa(asvs_to_keep, ps_rar)
+filtered_physeq <- prune_taxa(asvs_to_keep, ps)
 filtered_physeq
+
+sort(sample_sums(filtered_physeq))
+
+
+# Rarefy the data
+ps_rar <- rarefy_even_depth(filtered_physeq, sample.size = 500, rngseed = 1337) #1500 as determined by QIIME output and plateau of curves
+ps_rar 
+
+sort(sample_sums(ps_rar))
 
 ### Subset the data for samples_types ###
 #Honey bees
-HB_subset <- subset_samples(filtered_physeq, sample_type %in% c("Honey_bee"))
+HB_subset <- subset_samples(ps_rar, sample_type %in% c("Honey_bee"))
 
 #Prepupae
-prepupal_subset <- subset_samples(filtered_physeq, sample_type %in% c("Prepupae") & is.na(AB_treatment) & !Nest_id %in% c("5", "13", "14", "27"))
+prepupal_subset <- subset_samples(ps_rar, sample_type %in% c("Prepupae") & is.na(AB_treatment) & !Nest_id %in% c("5", "13", "14", "27"))
 
 #Larvae
-larva_subset <- subset_samples(filtered_physeq, sample_type %in% c("Larvae") & Year %in% c("2022"))
-mature_larvae <- subset_samples(filtered_physeq, sample_type %in% c("Prepupae") & Nest_id %in% c("5", "13", "14", "27"))
+larva_subset <- subset_samples(ps_rar, sample_type %in% c("Larvae") & Year %in% c("2022"))
+mature_larvae <- subset_samples(ps_rar, sample_type %in% c("Prepupae") & Nest_id %in% c("5", "13", "14", "27"))
 mature_larvae@sam_data$sample_type[which(mature_larvae@sam_data$sample_type == "Prepupae")] <- "Mature larvae"
 
 larvae_all <- merge_phyloseq (mature_larvae, larva_subset)
 larvae_all@sam_data$sample_type[which(larvae_all@sam_data$sample_type == "Mature larvae")] <- "Larvae"
 
 #Natural adults
-adults_subset <- subset_samples(filtered_physeq, sample_type == "Adults" & Env_exposure == "Free-flying")
+adults_subset <- subset_samples(ps_rar, sample_type == "Adults" & Env_exposure == "Free-flying")
 
 #Frass
-frass_subset <- subset_samples(filtered_physeq, Description_of_sample %in% c("CocoonFrass", "Frass", "PinkCocoonFrass"))
+frass_subset <- subset_samples(ps_rar, Description_of_sample %in% c("CocoonFrass", "Frass", "PinkCocoonFrass"))
 frass_subset@sam_data$sample_type[which(frass_subset@sam_data$sample_type == "Nest_contents")] <- "Frass contents"
 
 

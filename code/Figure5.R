@@ -25,19 +25,22 @@ ps <- qza_to_phyloseq(
 ps@sam_data$sampleid = rownames(ps@sam_data)
 ps
 
+# Distinguish the two most prevalent ASVs
+tax_table_df <- as.data.frame(tax_table(ps))
+# Rename the genus using *
+tax_table_df["c624f2e4228eea7296b2a77e2d4b7e50", "Genus"] <- "Acinetobacter*"
+tax_table_df["80626c0d45293428d118ce1f05a1ab18", "Genus"] <- "Tyzzerella*"
+# Update the taxonomy
+tax_table(ps) <- as.matrix(tax_table_df)
+
 # Load custom colour palette ####
 colours_df <- read_csv("input_files/colour_list.csv")
 my_palette <- colours_df$colours
 names(my_palette) <- colours_df$genera
 my_palette
 
-# Filter out samples with low abundance reads ####
-low_abundance_samples <- sample_sums(ps) <= 100
-filtered_physeq <- subset_samples(ps, !low_abundance_samples)
-filtered_physeq
-
 # Remove primary isolates
-filtered_physeq <- subset_samples(filtered_physeq, !sample_type %in% c("Primary_isolate")
+filtered_physeq <- subset_samples(ps, !sample_type %in% c("Primary_isolate")
                      & !AB_treatment %in% c("control", "antibiotic"))
 
 #Collapse to Genus level and pull our relative abundance of top 20 common genuses.
@@ -73,29 +76,28 @@ df_Genus5$Genus_20[is.na(df_Genus5$Genus_20)] <- c("Other")
 print(unique(df_Genus5$Genus_20))
 
 # % of reads that make up the top 20 genera ####
-mean(sample_sums(prune_taxa(top20Genus5, ps_Genus5_ra))
-)
+mean(sample_sums(prune_taxa(top20Genus5, ps_Genus5_ra)))
 
-custom_order <- c("Acinetobacter"                   , 
+custom_order <- c("Acinetobacter*"                 , 
                   "Brevibacterium"                 ,
-                  "Chloroplast"                     , 
+                  "Chloroplast"                    , 
                   "Pseudomonas"                    ,
-                  "Other"                           , 
+                  "Other"                          , 
                   "Mitochondria"                   ,
-                  "Tyzzerella"                      , 
+                  "Tyzzerella*"                    , 
                   "Lactobacillus"                  ,
-                  "Sodalis"                         , 
+                  "Acinetobacter"                  ,
                   "Sphingobium"                    ,
-                   "NA_unclassified"                , 
-                   "Bacillus"                       ,
-                   "Enterobacteriaceae_unclassified", 
-                   "Erwiniaceae_unclassified"       ,
-                   "Escherichia-Shigella"           , 
-                   "Commensalibacter"               ,
-                   "Gilliamella"                    , 
-                   "Snodgrassella"                  ,
-                   "Bifidobacterium"                , 
-                   "Bartonella")
+                  "NA_unclassified"                , 
+                  "Bacillus"                       ,
+                  "Enterobacteriaceae_unclassified", 
+                  "Erwiniaceae_unclassified"       ,
+                  "Escherichia-Shigella"           , 
+                  "Commensalibacter"               ,
+                  "Gilliamella"                    ,
+                  "Tyzzerella"                     ,
+                  "Snodgrassella"                  ,
+                  "Bartonella")
                 
                    
 df_Genus5$Genus_20 <- factor(df_Genus5$Genus_20, levels = custom_order)
@@ -117,7 +119,7 @@ df_Genus5$sample_type2 <- factor(df_Genus5$sample_type2, levels=order)
     geom_col(width = 1, aes(fill = Genus_20, y = logDNA_weighted)) +
     scale_fill_manual(values = my_palette) +
     facet_nested(~ sample_type2, scales = "free", space = "free") +
-    labs(x = "sampleid", y = "Absolute abundance (ng)") +
+    labs(x = "sampleid", y = "Absolute abundance (16S gene copy numebr)") +
     theme( 
       axis.text.y = element_text(size=14, face = "bold"),
       axis.title.y = element_text(size=14, face = "bold"),
@@ -166,48 +168,31 @@ df_Genus5$sample_type2 <- factor(df_Genus5$sample_type2, levels=order)
 
 
 
-(legendPlot <- df_Genus5 %>%
+(legendPlot <-  df_Genus5 %>%
     dplyr::filter(complete.cases(logDNA)) %>%
-    dplyr::distinct(sampleid, Genus_20, .keep_all = TRUE) %>%
-    mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
-    dplyr::mutate(logDNA_weighted = logDNA*(Abundance/100)) %>%
-    ggplot(aes(x = sampleid)) +
-    geom_col(width = 1, aes(fill = Genus_20, y = logDNA_weighted)) +
+    ggplot(aes(x = sampleid, y = Abundance, fill = Genus_20)) +
+    geom_bar(width = 1, stat = "identity") +
     scale_fill_manual(values = my_palette) +
     facet_nested(~ sample_type2 , scales = "free", space = "free") +
-    #facet_nested(~ sample_type , scales = "free", space = "free") +
     labs(x = "sampleid", y = "Relative abundance") +
     theme( 
-      axis.text.y = element_text(size=12, face =, 'bold'),
-      axis.title.y = element_text(size=12, face = 'bold'),
+      axis.text.y = element_text(size=14, face = "bold"),
+      axis.title.y = element_text(size=14, face = "bold"),
       axis.ticks.y = element_line(linewidth = 1),
       axis.text.x = element_blank(),
       axis.title.x = element_blank(),
+      axis.ticks.x = element_blank(),
       legend.title = element_blank(),
-      legend.text = element_text(size = 14),
+      legend.text = element_text(size = 12),
       legend.position = "bottom",
       strip.background = element_blank(),
-      strip.text = element_textbox_simple(
-        padding = margin(5, 0, 5, 0),
-        margin = margin(5, 5, 5, 5),
-        size = 16,
-        face = "bold",
-        halign = 0.5,
-        fill = "white",
-        box.color = "grey",
-        linewidth = 1.5,
-        linetype = "solid",),
+      strip.text = element_blank(),
       panel.background = element_blank()
     ))
 
+ggsave("figures/Figure5Legend.png", height=10, width=15)
+
 
 (abundancesplot_nolegend <- plot_grid(absolutePlot, relativeBar, ncol = 1, align = "hv"))
-
-(Abundances_plot <- cowplot::plot_grid(abundancesplot_nolegend,
-                                       cowplot::get_legend(legendPlot),
-                                       cols = 1,
-                                       rel_heights = c(1.3, 0.2)
-                                       ))
-
 ggsave("figures/OctFigure5.png", height=10, width=15)
 

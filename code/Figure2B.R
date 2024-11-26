@@ -1,4 +1,4 @@
-# Load the required libraries ####
+### Load the required libraries ####
 library(phyloseq)
 library(tidyverse)
 library(qiime2R)
@@ -15,35 +15,49 @@ library(ggforce)
 library(vegan)
 library(xfun)
 
-# Load phyloseq object ####
+### Preparing the data ###
+# Load phyloseq object
 ps <- qza_to_phyloseq(
   features = "input_files/merged_table.qza",
   taxonomy = "input_files/merged_taxonomy.qza",
   tree = "input_files/merged_sepp_tree.qza",
-  metadata = "input_files/combined_metadata_4.tsv")
+  metadata = "input_files/combined_metadata_5.tsv")
 ps@sam_data$sampleid = rownames(ps@sam_data)
-ps
+ps #1089 taxa and 208 samples
 
-# Rarefy ####
-ps_rar <- rarefy_even_depth(ps, sample.size = 1500, rngseed = 1337)
+# Distinguish the two most prevalent ASVs
+tax_table_df <- as.data.frame(tax_table(ps))
+# Rename the genus using *
+tax_table_df["c624f2e4228eea7296b2a77e2d4b7e50", "Genus"] <- "Acinetobacter*"
+tax_table_df["80626c0d45293428d118ce1f05a1ab18", "Genus"] <- "Tyzzerella*"
+# Update the taxonomy
+tax_table(ps) <- as.matrix(tax_table_df)
+
+# Load custom colour palette for each taxa
+colours_df <- read_csv("input_files/colour_list.csv")
+my_palette <- colours_df$colours
+names(my_palette) <- colours_df$genera
+my_palette
 
 # Remove contaminants, chloroplasts, and mitochondria ####
 contam <- read_delim("input_files/chloro_mito_decontam_asvs.txt", 
                      delim = "\n", 
                      col_names = "asv")
+
 chloro_mito_decontam_asvs <- contam$asv
-all_asvs <- taxa_names(ps_rar)
+all_asvs <- taxa_names(ps)
 asvs_to_keep <- all_asvs[!(all_asvs %in% chloro_mito_decontam_asvs)]
-ps_rar <- prune_taxa(asvs_to_keep, ps_rar)
-ps_rar
-
-# Filter out 0 abundance reads ####
-zero_abundance_samples <- sample_sums(ps_rar) == 0
-zero_abundance_samples <- sample_sums(ps) == 0
-
-filtered_physeq <- subset_samples(ps_rar, !zero_abundance_samples)
-filtered_physeq <- subset_samples(ps, !zero_abundance_samples)
+filtered_physeq <- prune_taxa(asvs_to_keep, ps)
 filtered_physeq
+
+sort(sample_sums(filtered_physeq))
+
+
+# Rarefy the data
+ps_rar <- rarefy_even_depth(filtered_physeq, sample.size = 500, rngseed = 1337) #1500 as determined by QIIME output and plateau of curves
+ps_rar 
+
+sort(sample_sums(ps_rar))
 
 # Subset the data for samples_types ####
 food_with_brood_through_time <- subset_samples(filtered_physeq, sample_type %in% c("Food") 

@@ -24,13 +24,8 @@ ps <- qza_to_phyloseq(
 ps@sam_data$sampleid = rownames(ps@sam_data)
 ps
 
-# Filter out samples with low abundance reads ####
-low_abundance_samples <- sample_sums(ps) <= 100
-filtered_physeq <- subset_samples(ps, !low_abundance_samples)
-filtered_physeq
-
 # Subset the data for samples that underwent qPCRs (have CT scores)
-qPCRs <- subset_samples(filtered_physeq, complete.cases(AVG_CTscore) &
+qPCRs <- subset_samples(ps, complete.cases(AVG_CTscore) &
                           sample_type %in% c("Negative_control", "Food", "Adults", "Honey_bee"))
 
 # Make the phyloseq into a dataframe
