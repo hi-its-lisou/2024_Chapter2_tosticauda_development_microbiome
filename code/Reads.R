@@ -4,6 +4,9 @@ library(tidyverse)
 library(qiime2R)
 library(decontam)
 library(microbiome)
+library(vegan)
+library(ggplot2)
+library(dplyr)
 
 
 # Load phyloseq object ####
@@ -120,3 +123,27 @@ cat("Chloroplast/Mitochondria reads:", sum(chloroplast_mitochondria_reads), "\n"
 cat("Proportion of reads that are chloroplast or mitochondria:", round(proportion_chloroplast_mitochondria * 100, 2), "%\n")
 
 
+mat <- t(otu_table(ps_raw))
+raremax <- min(rowSums(mat))
+
+#> Loading required package: permute
+#> Loading required package: lattice
+#> This is vegan 2.6-4
+
+taxa_are_rows(ps_raw)
+mat <- t(otu_table(ps_raw))
+class(mat) <- "matrix"
+#> Warning message:
+#> In class(mat) <- "matrix" :
+#>  Setting class(x) to "matrix" sets attribute to NULL; result will no longer be an S4 object
+class(mat)
+#> [1] "matrix" "array"
+
+mat <- as(t(otu_table(ps_raw)), "matrix")
+class(mat)
+#> [1] "matrix" "array"
+
+raremax <- min(rowSums(mat))
+system.time(rarecurve(mat, step = 100, sample = raremax, col = "blue", label = FALSE))
+
+rarecurve_data <- rarecurve(otu_mat, step = 100, sample = min(rowSums(mat)), tidy = FALSE)
