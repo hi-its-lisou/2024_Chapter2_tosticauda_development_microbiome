@@ -133,17 +133,11 @@ raremax <- min(rowSums(mat))
 taxa_are_rows(ps_raw)
 mat <- t(otu_table(ps_raw))
 class(mat) <- "matrix"
-#> Warning message:
-#> In class(mat) <- "matrix" :
-#>  Setting class(x) to "matrix" sets attribute to NULL; result will no longer be an S4 object
 class(mat)
 #> [1] "matrix" "array"
 
 mat <- as(t(otu_table(ps_raw)), "matrix")
-class(mat)
 #> [1] "matrix" "array"
 
 raremax <- min(rowSums(mat))
-system.time(rarecurve(mat, step = 100, sample = raremax, col = "blue", label = FALSE))
-
-rarecurve_data <- rarecurve(otu_mat, step = 100, sample = min(rowSums(mat)), tidy = FALSE)
+rarecurve(mat, step = 20, sample = raremax, col = "blue", label = FALSE, cex = 0.6, xlab = "Sequencing depth", ylab = "Observed Species")
