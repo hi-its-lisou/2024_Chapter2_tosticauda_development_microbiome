@@ -9,7 +9,7 @@ library(ggplot2)
 library(dplyr)
 
 
-# Load phyloseq object ####
+### Load raw, unfiltered data object ####
 ps_raw <- qza_to_phyloseq(
   features = "input_files/merged_table.qza",
   taxonomy = "input_files/merged_taxonomy.qza",
@@ -19,23 +19,19 @@ ps_raw@sam_data$sampleid = rownames(ps_raw@sam_data)
 ps_raw
 
 
-### Use only the samples from manuscript by bringing into the same filtered phyloseqs
+### Use only the samples from manuscript
 # Honey bees
 HB_subset <- subset_samples(ps_raw, sample_type %in% c("Honey_bee"))
-
 # Prepupae
 prepupal_subset <- subset_samples(ps_raw, sample_type %in% c("Prepupae") & is.na(AB_treatment) & !Nest_id %in% c("5", "13", "14", "27"))
-
 # Larvae
 larva_subset <- subset_samples(ps_raw, sample_type %in% c("Larvae") & Year %in% c("2022"))
-
 # Adults
 adults <- subset_samples(ps_raw, sample_type %in% c("Adults"))
 adults
 # Frass
 frass_subset <- subset_samples(ps_raw, Description_of_sample %in% c("CocoonFrass", "Frass", "PinkCocoonFrass"))
 frass_subset@sam_data$sample_type[which(frass_subset@sam_data$sample_type == "Nest_contents")] <- "Frass contents"
-
 # Pollen provisions
 food_through_time <- subset_samples(ps_raw, sample_type %in% c("Food") 
                                     & Nest_id %in% c("5", "13", "14", "27", "15")
@@ -44,7 +40,6 @@ food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "
 food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "13")] <- "2"
 food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "14")] <- "3"
 food_through_time@sam_data$Nest_id[which(food_through_time@sam_data$Nest_id == "27")] <- "4"
-
 # Negative controls
 negative_controls <- (subset_samples(ps_raw, sample_type %in% c("Negative_control")))
 
@@ -52,7 +47,7 @@ negative_controls <- (subset_samples(ps_raw, sample_type %in% c("Negative_contro
 ps_raw <- merge_phyloseq(food_through_time, larva_subset, prepupal_subset, adults, HB_subset, frass_subset, negative_controls)
 
 
-# Total reads in the raw (unfiltered) dataset
+### Total reads in the raw (unfiltered) dataset
 total_reads_raw <- sum(sample_sums(ps_raw))
 sort(sample_sums(ps_raw))
 
@@ -87,6 +82,33 @@ cat("Total reads remaining after filtering:", total_reads_filtered, "\n")
 cat("Mean reads per sample (raw):", round(mean_reads_raw), "\n")
 cat("Mean reads per sample (filtered):", round(mean_reads_filtered), "\n")
 
+
+### Making a rarefaction curve for filtered data ###
+# Remove contaminants, chloroplasts, and mitochondria
+mat <- t(otu_table(filtered_physeq))
+raremax <- min(rowSums(mat))
+
+taxa_are_rows(filtered_physeq)
+mat <- t(otu_table(filtered_physeq))
+class(mat) <- "matrix"
+
+#  Setting class(x) to "matrix" sets attribute to NULL; result will no longer be an S4 object
+class(mat)
+
+mat <- as(t(otu_table(filtered_physeq)), "matrix")
+class(mat)
+
+raremax <- min(rowSums(mat))
+
+# Plot the curve with a max sequencing depth of 2500
+rarecurve(mat, step = 100, 
+          sample = raremax, 
+          col = "blue", 
+          label = FALSE, 
+          xlim = c(0, 2500),  
+          xlab = "Sequencing Depth", 
+          ylab = "Observed Species")
+
 ### Calculate the proportion of reads that were off-target ###
 # Extract the OTU table and taxonomy table from the phyloseq object
 otu_table_df <- as.data.frame(as(otu_table(ps_raw), "matrix"))
@@ -105,7 +127,6 @@ chloroplast_mitochondria_taxa <- merged_data %>%
            grepl("mitochondria", Family, ignore.case = TRUE))
 
 # Select only the OTU count columns (excluding non-numeric columns like taxonomic information)
-# Assuming taxonomic columns are at the end of the data frame after merging
 otu_columns <- select(chloroplast_mitochondria_taxa, where(is.numeric))
 
 # Calculate total reads for chloroplast and mitochondria ASVs/OTUs
@@ -121,29 +142,3 @@ proportion_chloroplast_mitochondria <- sum(chloroplast_mitochondria_reads) / tot
 cat("Total reads:", total_reads, "\n")
 cat("Chloroplast/Mitochondria reads:", sum(chloroplast_mitochondria_reads), "\n")
 cat("Proportion of reads that are chloroplast or mitochondria:", round(proportion_chloroplast_mitochondria * 100, 2), "%\n")
-
-
-mat <- t(otu_table(ps_raw))
-raremax <- min(rowSums(mat))
-
-#> Loading required package: permute
-#> Loading required package: lattice
-#> This is vegan 2.6-4
-
-taxa_are_rows(ps_raw)
-mat <- t(otu_table(ps_raw))
-class(mat) <- "matrix"
-#> Warning message:
-#> In class(mat) <- "matrix" :
-#>  Setting class(x) to "matrix" sets attribute to NULL; result will no longer be an S4 object
-class(mat)
-#> [1] "matrix" "array"
-
-mat <- as(t(otu_table(ps_raw)), "matrix")
-class(mat)
-#> [1] "matrix" "array"
-
-raremax <- min(rowSums(mat))
-system.time(rarecurve(mat, step = 100, sample = raremax, col = "blue", label = FALSE))
-
-rarecurve_data <- rarecurve(otu_mat, step = 100, sample = min(rowSums(mat)), tidy = FALSE)

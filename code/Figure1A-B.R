@@ -116,7 +116,6 @@ uw_adonis <- adonis2(distance(development, method="unifrac") ~ sample_type,
                      permutations = 9999)
 uw_adonis
 
-
 #Check for homogenaeity multivariate dispersion with betadisper
 homogenaeity <- md_combined_subset[["sample_type"]]
 uw_disp <- betadisper(distance(development, method="unifrac"), group = homogenaeity)
@@ -127,8 +126,6 @@ boxplot(uw_disp)
 #Tukey HSD
 uw_disp_HSD <- TukeyHSD(uw_disp)
 plot(uw_disp_HSD)
-
-
 
 
 # Combine the subsetted data ####
@@ -165,7 +162,7 @@ print(unique(df_Genus1$Genus_20))
 mean(sample_sums(prune_taxa(top20Genus1, ps_Genus1_ra)))
 
 
-# Plot the relative abundance ####
+### Relative abundance ####
 # Custom order for sample types
 custom_order <- c("Adults", "Larvae", "Mature_Larvae", "Prepupae", "Frass contents")
 df_Genus1$sample_type <- factor(df_Genus1$sample_type, levels = custom_order)
@@ -174,6 +171,7 @@ df_Genus1$sample_type <- factor(df_Genus1$sample_type, levels = custom_order)
 custom_Cell_ID_order <- c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A")
 df_Genus1$Cell_ID <- factor(df_Genus1$Cell_ID, levels = custom_Cell_ID_order)
 
+# Plot the relative abundance for development stages
 (Figure1A <- df_Genus1 %>%
   mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
@@ -206,7 +204,7 @@ df_Genus1$Cell_ID <- factor(df_Genus1$Cell_ID, levels = custom_Cell_ID_order)
   ))
 
 
-#use patchwork to stich a/b
+# Use cowplot to stich a/b
 Figure1 <- cowplot::plot_grid(Figure1A,
                               Figure1B,
                               ncol = 2,

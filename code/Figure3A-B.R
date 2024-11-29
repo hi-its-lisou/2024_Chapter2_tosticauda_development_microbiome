@@ -62,9 +62,6 @@ ps_rar
 adults2023 <- subset_samples(ps_rar, sample_type %in% c("Adults"))
 adults2023
 
-# Determine the number of reads per sample ####
-sort(sample_sums(adults2023))
-
 # Obtain top 20 genera ####
 ps_Genus3 <- tax_glom(adults2023, taxrank = "Genus", NArm = FALSE)
 
@@ -142,13 +139,14 @@ adults_colours <- c("#f87970", "#1E88E5", "#FFC107")
                              color = "Env_exposure",
                              axes = c(1, 2)) +
     geom_point(size = 5, alpha = 0.6) +
-    theme_minimal() +
+    stat_ellipse(geom = "polygon", type="norm", alpha=0) +
+        theme_minimal() +
     scale_color_manual(values = adults_colours) +
-    theme (axis.text.y = element_text(size=14, face = 'bold'),
-           axis.title.y = element_text(size=14, face = 'bold'),
-           axis.text.x = element_text(size=14, face = 'bold'),
-           axis.title.x = element_text(size=14, face = 'bold'),
-           legend.text = element_text(size = 14),
+    theme (axis.text.y = element_text(size=18, face = 'bold'),
+           axis.title.y = element_text(size=18, face = 'bold'),
+           axis.text.x = element_text(size=18, face = 'bold'),
+           axis.title.x = element_text(size=18, face = 'bold'),
+           legend.text = element_text(size = 18),
            legend.position = "top", 
            legend.title = element_blank()))
 
@@ -184,3 +182,12 @@ AE_plot <- cowplot::plot_grid(Figure3A,
 AE_plot
 # Save plot ####
 ggsave("figures/OctFigure3.png", height=13, width=20)
+
+
+##For supplementary materials with read counts of Acinetobacter and Tyzzerella
+# Acinetobacter
+source("Plot_specific_ASV_Abundance_Function.R")
+plot.specific.ASV(adults2023, "c624f2e4228eea7296b2a77e2d4b7e50", "Env_exposure")
+# Tyzzerella
+source("Plot_specific_ASV_Abundance_Function.R")
+plot.specific.ASV(adults2023, "80626c0d45293428d118ce1f05a1ab18", "Env_exposure")

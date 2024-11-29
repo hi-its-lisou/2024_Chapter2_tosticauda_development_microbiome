@@ -99,11 +99,12 @@ print(unique(df_Genus2$Genus_20))
 mean(sample_sums(prune_taxa(top20Genus2, ps_Genus2_ra)))
 
 
-# Plot the relative abundance ####
+### Relative abundance ####
 # Custom order for Cell_ID from youngest to oldest
 custom_Cell_ID_order <- c("J", "I", "H", "G", "F", "E", "D", "C", "B", "A")
 df_Genus2$Cell_ID <- factor(df_Genus2$Cell_ID, levels = custom_Cell_ID_order)
 
+# Plot the relative abundance for pollen provisions
 (fig2 <- df_Genus2 %>%
   mutate(Genus_20 = reorder(Genus_20, -Abundance)) %>%
   ggplot(aes(x = sample_type, y = Abundance, fill = Genus_20)) +
