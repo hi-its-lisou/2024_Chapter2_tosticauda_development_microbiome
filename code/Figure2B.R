@@ -112,7 +112,7 @@ ggplot(alpha_diversity_metadata, aes(x = numeric_cell_ids, y = diversity_shannon
                      labels = custom_Cell_ID_order)
 
 
-ggsave("figures/S1.png", height=8, width=12)
+ggsave("figures/2B.png", height=8, width=12)
 
 
 model_interaction <- lm(diversity_shannon ~ as.numeric(Cell_ID) * Nest_id, data = alpha_diversity_metadata)
